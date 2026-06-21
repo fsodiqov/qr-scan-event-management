@@ -1,16 +1,18 @@
 import { useRef, useState } from 'react';
 import { Alert, Button, Card, Input, Select, Space, Typography, message } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/common/PageHeader';
 import { ScanResultModal } from '@/components/attendance/ScanResultModal';
 import { QRScanner } from '@/components/qr/QRScanner';
 import { useScanQr } from '@/hooks/useAttendance';
 import { useEvents } from '@/hooks/useEvents';
-import { extractQrToken, getApiErrorMessage } from '@/utils/helpers';
+import { extractQrToken, getApiErrorMessage, translateApiMessage } from '@/utils/helpers';
 import type { ScanResponse } from '@/types';
 import type { AxiosError } from 'axios';
 import type { ApiErrorResponse } from '@/types';
 
 export function ScannerPage() {
+  const { t } = useTranslation();
   const [eventId, setEventId] = useState<string>();
   const [manualToken, setManualToken] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -25,7 +27,7 @@ export function ScannerPage() {
 
   const processScan = async (token: string) => {
     if (!eventId) {
-      message.warning('Please select an active event first');
+      message.warning(t('scanner.selectEventFirst'));
       return;
     }
 
@@ -57,12 +59,15 @@ export function ScannerPage() {
       ) {
         setScanResult({
           result: 'already_out',
-          message: axiosError.response.data.message,
+          message: translateApiMessage(
+            axiosError.response.data.code,
+            axiosError.response.data.message,
+          ),
           user: details.user,
           attendance: details.attendance,
         });
       } else {
-        setScanError(getApiErrorMessage(error, 'Scan failed'));
+        setScanError(getApiErrorMessage(error, t('scanner.scanFailed')));
       }
     } finally {
       processingRef.current = false;
@@ -72,7 +77,7 @@ export function ScannerPage() {
   const handleManualScan = () => {
     const token = extractQrToken(manualToken);
     if (!token) {
-      message.error('Invalid QR token or URL');
+      message.error(t('scanner.invalidToken'));
       return;
     }
     void processScan(token);
@@ -81,18 +86,18 @@ export function ScannerPage() {
   return (
     <div>
       <PageHeader
-        title="QR Scanner"
-        subtitle="Scan participant QR codes for check-in and check-out"
+        title={t('scanner.title')}
+        subtitle={t('scanner.subtitle')}
       />
 
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         <Card>
           <Space direction="vertical" style={{ width: '100%' }} size="middle">
             <div>
-              <Typography.Text strong>Select Active Event</Typography.Text>
+              <Typography.Text strong>{t('scanner.selectEvent')}</Typography.Text>
               <Select
                 style={{ width: '100%', marginTop: 8 }}
-                placeholder="Choose an event"
+                placeholder={t('scanner.chooseEvent')}
                 value={eventId}
                 onChange={setEventId}
                 options={activeEvents.map((event) => ({
@@ -106,7 +111,7 @@ export function ScannerPage() {
               <Alert
                 type="warning"
                 showIcon
-                message="No active events found. Activate an event before scanning."
+                message={t('scanner.noActiveEvents')}
               />
             )}
           </Space>
@@ -114,16 +119,16 @@ export function ScannerPage() {
 
         <QRScanner onScan={processScan} disabled={!eventId || scanQr.isPending} />
 
-        <Card title="Manual Token Entry">
+        <Card title={t('scanner.manualEntry')}>
           <Space.Compact style={{ width: '100%' }}>
             <Input
-              placeholder="Paste QR URL or token"
+              placeholder={t('scanner.tokenPlaceholder')}
               value={manualToken}
               onChange={(e) => setManualToken(e.target.value)}
               onPressEnter={handleManualScan}
             />
             <Button type="primary" onClick={handleManualScan}>
-              Scan
+              {t('common.scan')}
             </Button>
           </Space.Compact>
         </Card>

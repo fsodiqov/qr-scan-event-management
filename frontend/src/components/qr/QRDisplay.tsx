@@ -1,5 +1,6 @@
 import { Button, Card, Image, Space, Typography } from 'antd';
 import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 
 interface QRDisplayProps {
   qrDataUrl: string;
@@ -16,10 +17,12 @@ export function QRDisplay({
   onRegenerate,
   isRegenerating,
 }: QRDisplayProps) {
+  const { t } = useTranslation();
+
   const handleDownload = () => {
     const link = document.createElement('a');
     link.href = qrDataUrl;
-    link.download = `${name ?? 'participant'}-qr.png`;
+    link.download = `${name ?? t('common.participant')}-qr.png`;
     link.click();
   };
 
@@ -27,7 +30,7 @@ export function QRDisplay({
     <Card style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         {name && <Typography.Title level={4}>{name}</Typography.Title>}
-        <Image src={qrDataUrl} alt="QR Code" preview={false} width={280} />
+        <Image src={qrDataUrl} alt={t('users.qrAlt')} preview={false} width={280} />
         {qrUrl && (
           <Typography.Text type="secondary" copyable style={{ wordBreak: 'break-all' }}>
             {qrUrl}
@@ -35,7 +38,7 @@ export function QRDisplay({
         )}
         <Space>
           <Button icon={<DownloadOutlined />} onClick={handleDownload}>
-            Download
+            {t('common.download')}
           </Button>
           {onRegenerate && (
             <Button
@@ -43,7 +46,7 @@ export function QRDisplay({
               onClick={onRegenerate}
               loading={isRegenerating}
             >
-              Regenerate
+              {t('common.regenerate')}
             </Button>
           )}
         </Space>

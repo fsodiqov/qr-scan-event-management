@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/jwt';
 import { UnauthorizedError } from '../utils/AppError';
+import { ERROR_CODES } from '../constants/errorCodes';
 import { User } from '../models/User';
 
 export async function authenticate(
@@ -12,7 +13,7 @@ export async function authenticate(
     const authHeader = req.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
-      throw new UnauthorizedError('Access token is required');
+      throw new UnauthorizedError('Access token is required', ERROR_CODES.ACCESS_TOKEN_REQUIRED);
     }
 
     const token = authHeader.slice(7);
@@ -21,7 +22,7 @@ export async function authenticate(
     const user = await User.findById(payload.sub).select('+passwordHash');
 
     if (!user || !user.isActive) {
-      throw new UnauthorizedError('User not found or inactive');
+      throw new UnauthorizedError('User not found or inactive', ERROR_CODES.USER_NOT_FOUND_OR_INACTIVE);
     }
 
     req.user = {
@@ -37,7 +38,7 @@ export async function authenticate(
       next(error);
       return;
     }
-    next(new UnauthorizedError('Invalid or expired token'));
+    next(new UnauthorizedError('Invalid or expired token', ERROR_CODES.INVALID_OR_EXPIRED_TOKEN));
   }
 }
 

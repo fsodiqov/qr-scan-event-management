@@ -1,6 +1,8 @@
 import { Modal, Result, Typography } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { AttendanceStatusTag } from '@/components/attendance/AttendanceStatusTag';
-import { SCAN_RESULT_LABELS } from '@/utils/constants';
+import { useStatusLabels } from '@/hooks/useStatusLabels';
+import { translateApiMessage } from '@/utils/helpers';
 import type { ScanResponse } from '@/types';
 
 interface ScanResultModalProps {
@@ -16,42 +18,44 @@ export function ScanResultModal({
   errorMessage,
   onClose,
 }: ScanResultModalProps) {
+  const { t } = useTranslation();
+  const { scanResult } = useStatusLabels();
   const isSuccess = Boolean(result);
   const isWarning = result?.result === 'already_out';
 
   return (
     <Modal open={open} onCancel={onClose} onOk={onClose} footer={null} centered>
       {errorMessage ? (
-        <Result status="error" title="Scan Failed" subTitle={errorMessage} />
+        <Result status="error" title={t('scanner.scanFailedTitle')} subTitle={errorMessage} />
       ) : result ? (
         <Result
           status={isWarning ? 'warning' : 'success'}
-          title={SCAN_RESULT_LABELS[result.result]}
-          subTitle={result.message}
+          title={scanResult(result.result)}
+          subTitle={translateApiMessage(undefined, result.message)}
           extra={
             <div style={{ textAlign: 'left' }}>
               <Typography.Paragraph>
-                <strong>Name:</strong> {result.user.name}
+                <strong>{t('common.name')}:</strong> {result.user.name}
               </Typography.Paragraph>
               {result.user.phone && (
                 <Typography.Paragraph>
-                  <strong>Phone:</strong> {result.user.phone}
+                  <strong>{t('common.phone')}:</strong> {result.user.phone}
                 </Typography.Paragraph>
               )}
               {result.user.organization && (
                 <Typography.Paragraph>
-                  <strong>Organization:</strong> {result.user.organization}
+                  <strong>{t('common.organization')}:</strong> {result.user.organization}
                 </Typography.Paragraph>
               )}
               <Typography.Paragraph>
-                <strong>Status:</strong>{' '}
+                <strong>{t('common.status')}:</strong>{' '}
                 <AttendanceStatusTag status={result.attendance.status} />
               </Typography.Paragraph>
             </div>
           }
         />
       ) : (
-        <Result status={isSuccess ? 'success' : 'info'} title="Processing scan..." />
+        <Result status={isSuccess ? 'success' : 'info'} title={t('scanner.processing')} />
       )}
     </Modal>
   );

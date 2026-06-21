@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Layout, Menu, Button, Typography, theme } from 'antd';
+import { Layout, Menu, Button, Typography, theme, Space } from 'antd';
 import {
   DashboardOutlined,
   TeamOutlined,
@@ -11,18 +11,12 @@ import {
   MenuUnfoldOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
+import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { ROUTES } from '@/utils/constants';
 
 const { Header, Sider, Content } = Layout;
-
-const menuItems = [
-  { key: ROUTES.DASHBOARD, icon: <DashboardOutlined />, label: <Link to={ROUTES.DASHBOARD}>Dashboard</Link> },
-  { key: ROUTES.USERS, icon: <TeamOutlined />, label: <Link to={ROUTES.USERS}>Users</Link> },
-  { key: ROUTES.EVENTS, icon: <CalendarOutlined />, label: <Link to={ROUTES.EVENTS}>Events</Link> },
-  { key: ROUTES.ATTENDANCE, icon: <UnorderedListOutlined />, label: <Link to={ROUTES.ATTENDANCE}>Attendance Logs</Link> },
-  { key: ROUTES.SCANNER, icon: <ScanOutlined />, label: <Link to={ROUTES.SCANNER}>QR Scanner</Link> },
-];
 
 export function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
@@ -30,6 +24,15 @@ export function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { token } = theme.useToken();
+  const { t } = useTranslation();
+
+  const menuItems = [
+    { key: ROUTES.DASHBOARD, icon: <DashboardOutlined />, label: <Link to={ROUTES.DASHBOARD}>{t('nav.dashboard')}</Link> },
+    { key: ROUTES.USERS, icon: <TeamOutlined />, label: <Link to={ROUTES.USERS}>{t('nav.users')}</Link> },
+    { key: ROUTES.EVENTS, icon: <CalendarOutlined />, label: <Link to={ROUTES.EVENTS}>{t('nav.events')}</Link> },
+    { key: ROUTES.ATTENDANCE, icon: <UnorderedListOutlined />, label: <Link to={ROUTES.ATTENDANCE}>{t('nav.attendance')}</Link> },
+    { key: ROUTES.SCANNER, icon: <ScanOutlined />, label: <Link to={ROUTES.SCANNER}>{t('nav.scanner')}</Link> },
+  ];
 
   const handleLogout = async () => {
     await logout();
@@ -37,11 +40,12 @@ export function AdminLayout() {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout className="admin-shell">
       <Sider
         collapsible
         collapsed={collapsed}
         onCollapse={setCollapsed}
+        trigger={null}
         breakpoint="lg"
         theme="light"
         style={{ borderRight: `1px solid ${token.colorBorderSecondary}` }}
@@ -49,6 +53,7 @@ export function AdminLayout() {
         <div
           style={{
             height: 64,
+            flexShrink: 0,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -57,18 +62,21 @@ export function AdminLayout() {
             padding: '0 12px',
           }}
         >
-          {collapsed ? 'QR' : 'QR Attendance'}
+          {collapsed ? 'QR' : t('app.shortTitle')}
         </div>
         <Menu
           mode="inline"
+          className="admin-sider-menu"
           selectedKeys={[location.pathname]}
           items={menuItems}
-          style={{ borderInlineEnd: 0 }}
         />
       </Sider>
-      <Layout>
+      <Layout className="admin-main">
         <Header
           style={{
+            flexShrink: 0,
+            lineHeight: 'normal',
+            height: 64,
             background: token.colorBgContainer,
             padding: '0 24px',
             display: 'flex',
@@ -82,14 +90,15 @@ export function AdminLayout() {
             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
             onClick={() => setCollapsed(!collapsed)}
           />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <Space size="middle">
+            <LanguageSwitcher size="small" />
             <Typography.Text>{user?.name}</Typography.Text>
             <Button icon={<LogoutOutlined />} onClick={handleLogout}>
-              Logout
+              {t('nav.logout')}
             </Button>
-          </div>
+          </Space>
         </Header>
-        <Content style={{ margin: 24 }}>
+        <Content className="admin-content">
           <Outlet />
         </Content>
       </Layout>

@@ -1,15 +1,19 @@
 import { useMemo, useState } from 'react';
 import { Select, Space, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/common/PageHeader';
 import { AttendanceStatusTag } from '@/components/attendance/AttendanceStatusTag';
 import { useAttendance } from '@/hooks/useAttendance';
 import { useEvents } from '@/hooks/useEvents';
+import { useStatusLabels } from '@/hooks/useStatusLabels';
 import { formatDateTime } from '@/utils/formatDate';
 import { getEntityName } from '@/utils/helpers';
 import type { Attendance, AttendanceStatus } from '@/types';
 
 export function AttendancePage() {
+  const { t } = useTranslation();
+  const { attendanceStatusOptions } = useStatusLabels();
   const [page, setPage] = useState(1);
   const [eventId, setEventId] = useState<string | undefined>();
   const [status, setStatus] = useState<AttendanceStatus | undefined>();
@@ -24,29 +28,29 @@ export function AttendancePage() {
 
   const columns: ColumnsType<Attendance> = [
     {
-      title: 'Participant',
+      title: t('common.participant'),
       key: 'user',
       render: (_, record) => getEntityName(record.userId),
     },
     {
-      title: 'Event',
+      title: t('common.event'),
       key: 'event',
       render: (_, record) => getEntityName(record.eventId),
     },
     {
-      title: 'Check In',
+      title: t('attendance.checkIn'),
       dataIndex: 'checkInTime',
       key: 'checkInTime',
       render: (value) => formatDateTime(value),
     },
     {
-      title: 'Check Out',
+      title: t('attendance.checkOut'),
       dataIndex: 'checkOutTime',
       key: 'checkOutTime',
       render: (value) => formatDateTime(value),
     },
     {
-      title: 'Status',
+      title: t('common.status'),
       dataIndex: 'status',
       key: 'status',
       render: (value: AttendanceStatus) => <AttendanceStatusTag status={value} />,
@@ -56,14 +60,14 @@ export function AttendancePage() {
   return (
     <div>
       <PageHeader
-        title="Attendance Logs"
-        subtitle="View check-in and check-out records"
+        title={t('attendance.title')}
+        subtitle={t('attendance.subtitle')}
       />
 
       <Space style={{ marginBottom: 16 }} wrap>
         <Select
           allowClear
-          placeholder="Filter by event"
+          placeholder={t('attendance.filterEvent')}
           style={{ width: 260 }}
           value={eventId}
           onChange={(value) => {
@@ -77,17 +81,14 @@ export function AttendancePage() {
         />
         <Select
           allowClear
-          placeholder="Filter by status"
-          style={{ width: 180 }}
+          placeholder={t('attendance.filterStatus')}
+          style={{ width: 200 }}
           value={status}
           onChange={(value) => {
             setPage(1);
             setStatus(value);
           }}
-          options={[
-            { value: 'checked_in', label: 'Checked In' },
-            { value: 'checked_out', label: 'Checked Out' },
-          ]}
+          options={attendanceStatusOptions()}
         />
       </Space>
 

@@ -5,39 +5,42 @@ import {
   LogoutOutlined,
   UserOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { useDashboardStats, useRecentActivity } from '@/hooks/useDashboard';
+import { useStatusLabels } from '@/hooks/useStatusLabels';
 import { formatDateTime } from '@/utils/formatDate';
-import { SCAN_RESULT_LABELS } from '@/utils/constants';
 
 export function DashboardPage() {
+  const { t } = useTranslation();
+  const { scanResult } = useStatusLabels();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: recent, isLoading: recentLoading } = useRecentActivity();
 
   if (statsLoading) {
-    return <LoadingSpinner />;
+    return <LoadingSpinner tip={t('common.loading')} />;
   }
 
   return (
     <div>
       <PageHeader
-        title="Dashboard"
-        subtitle="Overview of participants and attendance activity"
+        title={t('dashboard.title')}
+        subtitle={t('dashboard.subtitle')}
       />
 
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
           <StatCard
-            title="Total Participants"
+            title={t('dashboard.totalParticipants')}
             value={stats?.totalParticipants ?? 0}
             icon={<TeamOutlined />}
           />
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <StatCard
-            title="Checked In"
+            title={t('dashboard.checkedIn')}
             value={stats?.checkedIn ?? 0}
             icon={<LoginOutlined />}
             color="#52c41a"
@@ -45,7 +48,7 @@ export function DashboardPage() {
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <StatCard
-            title="Checked Out"
+            title={t('dashboard.checkedOut')}
             value={stats?.checkedOut ?? 0}
             icon={<LogoutOutlined />}
             color="#1677ff"
@@ -53,7 +56,7 @@ export function DashboardPage() {
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <StatCard
-            title="Currently Inside"
+            title={t('dashboard.currentlyInside')}
             value={stats?.currentlyInside ?? 0}
             icon={<UserOutlined />}
             color="#fa8c16"
@@ -62,21 +65,21 @@ export function DashboardPage() {
       </Row>
 
       <Typography.Title level={4} style={{ marginTop: 32 }}>
-        Recent Activity
+        {t('dashboard.recentActivity')}
       </Typography.Title>
 
       {recentLoading ? (
-        <LoadingSpinner />
+        <LoadingSpinner tip={t('common.loading')} />
       ) : (
         <List
           bordered
           dataSource={recent?.items ?? []}
-          locale={{ emptyText: 'No recent scans' }}
+          locale={{ emptyText: t('dashboard.noRecentScans') }}
           renderItem={(item) => (
             <List.Item>
               <List.Item.Meta
-                title={`${SCAN_RESULT_LABELS[item.result] ?? item.result} — ${item.userId?.name ?? 'Unknown'}`}
-                description={`${item.eventId?.title ?? 'Event'} · ${formatDateTime(item.scannedAt)}`}
+                title={`${scanResult(item.result)} — ${item.userId?.name ?? t('common.unknown')}`}
+                description={`${item.eventId?.title ?? t('common.event')} · ${formatDateTime(item.scannedAt)}`}
               />
             </List.Item>
           )}

@@ -2,13 +2,14 @@ import QRCode from 'qrcode';
 import { FilterQuery } from 'mongoose';
 import { User, IUser } from '../models/User';
 import { ROLES } from '../constants/roles';
+import { ERROR_CODES } from '../constants/errorCodes';
 import {
   BadRequestError,
   ConflictError,
   NotFoundError,
 } from '../utils/AppError';
 import { buildPaginationMeta, parsePagination } from '../utils/pagination';
-import { generateQrToken, buildQrUrl } from '../utils/qrToken';
+import { generateQrToken, buildQrUrl, QR_CODE_OPTIONS } from '../utils/qrToken';
 import {
   CreateUserInput,
   ListUsersQuery,
@@ -33,15 +34,15 @@ export class UserService {
 
     if (role === ROLES.ADMIN) {
       if (!input.email) {
-        throw new BadRequestError('Email is required for admin users');
+        throw new BadRequestError('Email is required for admin users', undefined, ERROR_CODES.EMAIL_REQUIRED_ADMIN);
       }
       if (!input.password) {
-        throw new BadRequestError('Password is required for admin users');
+        throw new BadRequestError('Password is required for admin users', undefined, ERROR_CODES.PASSWORD_REQUIRED_ADMIN);
       }
     }
 
     if (role === ROLES.PARTICIPANT && !input.phone) {
-      throw new BadRequestError('Phone is required for participants');
+      throw new BadRequestError('Phone is required for participants', undefined, ERROR_CODES.PHONE_REQUIRED_PARTICIPANT);
     }
 
     if (input.email) {
@@ -49,14 +50,14 @@ export class UserService {
         email: input.email.toLowerCase(),
       });
       if (existingEmail) {
-        throw new ConflictError('Email already in use');
+        throw new ConflictError('Email already in use', undefined, ERROR_CODES.EMAIL_ALREADY_IN_USE);
       }
     }
 
     if (input.phone) {
       const existingPhone = await User.findOne({ phone: input.phone });
       if (existingPhone) {
-        throw new ConflictError('Phone number already in use');
+        throw new ConflictError('Phone number already in use', undefined, ERROR_CODES.PHONE_ALREADY_IN_USE);
       }
     }
 
@@ -124,7 +125,7 @@ export class UserService {
     const user = await User.findById(id);
 
     if (!user) {
-      throw new NotFoundError('User not found');
+      throw new NotFoundError('User not found', ERROR_CODES.USER_NOT_FOUND);
     }
 
     return user;
@@ -136,7 +137,7 @@ export class UserService {
     if (input.email && input.email !== user.email) {
       const existing = await User.findOne({ email: input.email.toLowerCase() });
       if (existing && existing._id.toString() !== id) {
-        throw new ConflictError('Email already in use');
+        throw new ConflictError('Email already in use', undefined, ERROR_CODES.EMAIL_ALREADY_IN_USE);
       }
       user.email = input.email.toLowerCase();
     }
@@ -144,7 +145,7 @@ export class UserService {
     if (input.phone && input.phone !== user.phone) {
       const existing = await User.findOne({ phone: input.phone });
       if (existing && existing._id.toString() !== id) {
-        throw new ConflictError('Phone number already in use');
+        throw new ConflictError('Phone number already in use', undefined, ERROR_CODES.PHONE_ALREADY_IN_USE);
       }
       user.phone = input.phone;
     }
@@ -172,15 +173,11 @@ export class UserService {
     const user = await this.findById(userId);
 
     if (!user.qrToken) {
-      throw new BadRequestError('User does not have a QR token');
+      throw new BadRequestError('User does not have a QR token', undefined, ERROR_CODES.NO_QR_TOKEN);
     }
 
     const qrUrl = buildQrUrl(user.qrToken);
-    const qrDataUrl = await QRCode.toDataURL(qrUrl, {
-      errorCorrectionLevel: 'H',
-      margin: 2,
-      width: 300,
-    });
+    const qrDataUrl = await QRCode.toDataURL(user.qrToken, QR_CODE_OPTIONS);
 
     return {
       qrToken: user.qrToken,
@@ -193,7 +190,7 @@ export class UserService {
     const user = await this.findById(userId);
 
     if (user.role !== ROLES.PARTICIPANT) {
-      throw new BadRequestError('Only participants can have QR tokens');
+      throw new BadRequestError('Only participants can have QR tokens', undefined, ERROR_CODES.PARTICIPANTS_ONLY_QR);
     }
 
     user.qrToken = generateQrToken();

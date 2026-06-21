@@ -8,6 +8,7 @@ export const loginRateLimiter = rateLimit({
   message: {
     success: false,
     message: 'Too many login attempts. Please try again later.',
+    code: 'RATE_LIMIT_LOGIN',
   },
 });
 
@@ -19,6 +20,7 @@ export const scanRateLimiter = rateLimit({
   message: {
     success: false,
     message: 'Too many scan requests. Please slow down.',
+    code: 'RATE_LIMIT_SCAN',
   },
 });
 
@@ -30,5 +32,6 @@ export const apiRateLimiter = rateLimit({
   message: {
     success: false,
     message: 'Too many requests. Please try again later.',
+    code: 'RATE_LIMIT_API',
   },
 });

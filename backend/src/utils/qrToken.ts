@@ -1,23 +1,21 @@
 import crypto from 'crypto';
 import { env } from '../config/env';
 
-export function generateQrToken(): string {
-  return crypto.randomBytes(32).toString('hex');
-}
+/** 8 bytes → 16 hex chars; enough entropy for attendance QR tokens */
+const QR_TOKEN_BYTES = 8;
 
-export function signQrPayload(token: string): string {
-  return crypto.createHmac('sha256', env.QR_HMAC_SECRET).update(token).digest('hex');
+export const QR_TOKEN_HEX_LENGTH = QR_TOKEN_BYTES * 2;
+
+export const QR_CODE_OPTIONS = {
+  errorCorrectionLevel: 'M' as const,
+  margin: 2,
+  width: 300,
+};
+
+export function generateQrToken(): string {
+  return crypto.randomBytes(QR_TOKEN_BYTES).toString('hex');
 }
 
 export function buildQrUrl(token: string): string {
-  const signature = signQrPayload(token);
-  return `${env.APP_URL}/scan?t=${token}&s=${signature}`;
-}
-
-export function verifyQrSignature(token: string, signature: string): boolean {
-  const expected = signQrPayload(token);
-  return crypto.timingSafeEqual(
-    Buffer.from(expected, 'hex'),
-    Buffer.from(signature, 'hex'),
-  );
+  return `${env.APP_URL}/scan?t=${token}`;
 }

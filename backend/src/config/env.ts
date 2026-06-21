@@ -9,7 +9,6 @@ const envSchema = z.object({
   MONGODB_URI: z.string().min(1, 'MONGODB_URI is required'),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
   JWT_EXPIRES_IN: z.string().default('8h'),
-  QR_HMAC_SECRET: z.string().min(16, 'QR_HMAC_SECRET must be at least 16 characters'),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
   APP_URL: z.string().default('http://localhost:5173'),
 });

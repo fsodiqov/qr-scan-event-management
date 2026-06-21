@@ -7,7 +7,9 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "seed": "tsx src/scripts/seed.ts"
+    "seed": "tsx src/scripts/seed.ts",
+    "seed:mock": "tsx src/scripts/seedMockData.ts",
+    "seed:mock:reset": "SEED_RESET=true tsx src/scripts/seedMockData.ts"
   },
   "keywords": [],
   "author": "",

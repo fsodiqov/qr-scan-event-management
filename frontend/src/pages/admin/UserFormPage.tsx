@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Alert, Button, Card, Form, Input, Space, message } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { useCreateUser, useUpdateUser, useUser } from '@/hooks/useUsers';
@@ -18,6 +19,7 @@ interface UserFormValues {
 }
 
 export function UserFormPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
@@ -43,7 +45,7 @@ export function UserFormPage() {
     try {
       if (isEdit && id) {
         await updateUser.mutateAsync({ id, payload: values });
-        message.success('User updated');
+        message.success(t('users.updated'));
         navigate(ROUTES.USERS);
         return;
       }
@@ -56,67 +58,67 @@ export function UserFormPage() {
       const result = await createUser.mutateAsync(payload);
 
       if (result.tempPassword) {
-        message.success(`User created. Temp password: ${result.tempPassword}`, 8);
+        message.success(t('users.createdWithPassword', { password: result.tempPassword }), 8);
       } else {
-        message.success('User created');
+        message.success(t('users.created'));
       }
 
       navigate(ROUTES.USER_QR(result.user._id));
     } catch (error) {
-      message.error(getApiErrorMessage(error, 'Failed to save user'));
+      message.error(getApiErrorMessage(error, t('users.saveFailed')));
     }
   };
 
   if (isEdit && isLoading) {
-    return <LoadingSpinner />;
+    return <LoadingSpinner tip={t('common.loading')} />;
   }
 
   return (
     <div>
       <PageHeader
-        title={isEdit ? 'Edit User' : 'Add User'}
-        subtitle={isEdit ? 'Update participant details' : 'Register a new participant'}
+        title={isEdit ? t('users.editTitle') : t('users.addTitle')}
+        subtitle={isEdit ? t('users.editSubtitle') : t('users.addSubtitle')}
       />
 
       <Card style={{ maxWidth: 640 }}>
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item
-            label="Full Name"
+            label={t('users.fullName')}
             name="name"
-            rules={[{ required: true, message: 'Name is required' }]}
+            rules={[{ required: true, message: t('users.nameRequired') }]}
           >
-            <Input placeholder="John Doe" />
+            <Input placeholder={t('users.namePlaceholder')} />
           </Form.Item>
 
           <Form.Item
-            label="Phone"
+            label={t('common.phone')}
             name="phone"
-            rules={[{ required: true, message: 'Phone is required' }]}
+            rules={[{ required: true, message: t('users.phoneRequired') }]}
           >
-            <Input placeholder="+998901234567" />
+            <Input placeholder={t('users.phonePlaceholder')} />
           </Form.Item>
 
-          <Form.Item label="Email" name="email" rules={[{ type: 'email' }]}>
-            <Input placeholder="user@example.com" />
+          <Form.Item label={t('common.email')} name="email" rules={[{ type: 'email' }]}>
+            <Input placeholder={t('users.emailPlaceholder')} />
           </Form.Item>
 
-          <Form.Item label="Organization" name="organization">
-            <Input placeholder="Company or school" />
+          <Form.Item label={t('common.organization')} name="organization">
+            <Input placeholder={t('users.orgPlaceholder')} />
           </Form.Item>
 
-          <Form.Item label="Photo URL" name="photoUrl" rules={[{ type: 'url' }]}>
-            <Input placeholder="https://example.com/photo.jpg" />
+          <Form.Item label={t('users.photoUrl')} name="photoUrl" rules={[{ type: 'url' }]}>
+            <Input placeholder={t('users.photoPlaceholder')} />
           </Form.Item>
 
           {!isEdit && (
-            <Form.Item label="Password (optional)" name="password">
-              <Input.Password placeholder="Leave empty to auto-generate" />
+            <Form.Item label={t('users.passwordOptional')} name="password">
+              <Input.Password placeholder={t('users.passwordAuto')} />
             </Form.Item>
           )}
 
           {isEdit && (
-            <Form.Item label="New Password (optional)" name="password">
-              <Input.Password placeholder="Leave empty to keep current" />
+            <Form.Item label={t('users.newPasswordOptional')} name="password">
+              <Input.Password placeholder={t('users.passwordKeep')} />
             </Form.Item>
           )}
 
@@ -126,9 +128,9 @@ export function UserFormPage() {
               htmlType="submit"
               loading={createUser.isPending || updateUser.isPending}
             >
-              {isEdit ? 'Save Changes' : 'Create User'}
+              {isEdit ? t('users.saveChanges') : t('users.createUser')}
             </Button>
-            <Button onClick={() => navigate(ROUTES.USERS)}>Cancel</Button>
+            <Button onClick={() => navigate(ROUTES.USERS)}>{t('common.cancel')}</Button>
           </Space>
         </Form>
 
@@ -137,7 +139,7 @@ export function UserFormPage() {
             style={{ marginTop: 24 }}
             type="info"
             showIcon
-            message="A QR code will be generated automatically after creating the user."
+            message={t('users.qrInfo')}
           />
         )}
       </Card>

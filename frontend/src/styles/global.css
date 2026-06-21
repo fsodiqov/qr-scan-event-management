@@ -1,0 +1,46 @@
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
+.admin-shell {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.admin-shell > .ant-layout-sider {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.admin-shell > .ant-layout-sider > .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.admin-shell .admin-sider-menu {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border-inline-end: 0 !important;
+}
+
+.admin-shell .admin-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.admin-shell .admin-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 24px;
+  margin: 0 !important;
+}

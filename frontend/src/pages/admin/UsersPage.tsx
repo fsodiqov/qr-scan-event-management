@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Button, Input, Popconfirm, Space, Table, message } from 'antd';
 import { PlusOutlined, QrcodeOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import type { ColumnsType } from 'antd/es/table';
 import { PageHeader } from '@/components/common/PageHeader';
 import { useDeleteUser, useUsers } from '@/hooks/useUsers';
@@ -11,6 +12,7 @@ import { getApiErrorMessage } from '@/utils/helpers';
 import type { User } from '@/types';
 
 export function UsersPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -27,24 +29,24 @@ export function UsersPage() {
   const handleDelete = async (id: string) => {
     try {
       await deleteUser.mutateAsync(id);
-      message.success('User deactivated');
+      message.success(t('users.deactivated'));
     } catch (error) {
-      message.error(getApiErrorMessage(error, 'Failed to deactivate user'));
+      message.error(getApiErrorMessage(error, t('users.deactivateFailed')));
     }
   };
 
   const columns: ColumnsType<User> = [
-    { title: 'Name', dataIndex: 'name', key: 'name' },
-    { title: 'Phone', dataIndex: 'phone', key: 'phone', render: (v) => v ?? '—' },
-    { title: 'Organization', dataIndex: 'organization', key: 'organization', render: (v) => v ?? '—' },
+    { title: t('common.name'), dataIndex: 'name', key: 'name' },
+    { title: t('common.phone'), dataIndex: 'phone', key: 'phone', render: (v) => v ?? t('common.empty') },
+    { title: t('common.organization'), dataIndex: 'organization', key: 'organization', render: (v) => v ?? t('common.empty') },
     {
-      title: 'Created',
+      title: t('common.created'),
       dataIndex: 'createdAt',
       key: 'createdAt',
       render: (value) => formatDateTime(value),
     },
     {
-      title: 'Actions',
+      title: t('common.actions'),
       key: 'actions',
       render: (_, record) => (
         <Space>
@@ -61,7 +63,7 @@ export function UsersPage() {
             onClick={() => navigate(ROUTES.USER_EDIT(record._id))}
           />
           <Popconfirm
-            title="Deactivate this user?"
+            title={t('users.deactivateConfirm')}
             onConfirm={() => handleDelete(record._id)}
           >
             <Button size="small" danger icon={<DeleteOutlined />} />
@@ -74,12 +76,12 @@ export function UsersPage() {
   return (
     <div>
       <PageHeader
-        title="Users"
-        subtitle="Manage event participants"
+        title={t('users.title')}
+        subtitle={t('users.subtitle')}
         extra={
           <Link to={ROUTES.USER_NEW}>
             <Button type="primary" icon={<PlusOutlined />}>
-              Add User
+              {t('users.addUser')}
             </Button>
           </Link>
         }
@@ -87,7 +89,7 @@ export function UsersPage() {
 
       <Space style={{ marginBottom: 16 }}>
         <Input.Search
-          placeholder="Search by name, phone, organization"
+          placeholder={t('users.searchPlaceholder')}
           allowClear
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}

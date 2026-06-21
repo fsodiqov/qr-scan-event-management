@@ -2,6 +2,7 @@ import { FilterQuery, Types } from 'mongoose';
 import { Event, IEvent } from '../models/Event';
 import { Attendance } from '../models/Attendance';
 import { EVENT_STATUS } from '../constants/eventStatus';
+import { ERROR_CODES } from '../constants/errorCodes';
 import {
   BadRequestError,
   ConflictError,
@@ -81,7 +82,7 @@ export class EventService {
     const event = await Event.findById(id).populate('createdBy', 'name email');
 
     if (!event) {
-      throw new NotFoundError('Event not found');
+      throw new NotFoundError('Event not found', ERROR_CODES.EVENT_NOT_FOUND);
     }
 
     return event;
@@ -141,6 +142,8 @@ export class EventService {
     if (attendanceCount > 0) {
       throw new ConflictError(
         'Cannot delete event with existing attendance records',
+        undefined,
+        ERROR_CODES.EVENT_HAS_ATTENDANCE,
       );
     }
 
@@ -151,11 +154,11 @@ export class EventService {
     const event = await this.findById(eventId);
 
     if (event.status === EVENT_STATUS.CLOSED) {
-      throw new BadRequestError('Event is closed');
+      throw new BadRequestError('Event is closed', undefined, ERROR_CODES.EVENT_CLOSED);
     }
 
     if (event.status !== EVENT_STATUS.ACTIVE) {
-      throw new BadRequestError('Event is not active for scanning');
+      throw new BadRequestError('Event is not active for scanning', undefined, ERROR_CODES.EVENT_NOT_ACTIVE);
     }
 
     return event;

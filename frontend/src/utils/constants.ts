@@ -11,21 +11,3 @@ export const ROUTES = {
   ATTENDANCE: '/admin/attendance',
   SCANNER: '/admin/scanner',
 } as const;
-
-export const EVENT_STATUS_LABELS: Record<string, string> = {
-  draft: 'Draft',
-  active: 'Active',
-  closed: 'Closed',
-};
-
-export const ATTENDANCE_STATUS_LABELS: Record<string, string> = {
-  checked_in: 'Checked In',
-  checked_out: 'Checked Out',
-};
-
-export const SCAN_RESULT_LABELS: Record<string, string> = {
-  check_in: 'Check In',
-  check_out: 'Check Out',
-  already_out: 'Already Out',
-  invalid: 'Invalid',
-};

@@ -15,6 +15,7 @@ import {
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/common/PageHeader';
 import {
   useCreateEvent,
@@ -23,7 +24,7 @@ import {
   useUpdateEvent,
   useUpdateEventStatus,
 } from '@/hooks/useEvents';
-import { EVENT_STATUS_LABELS } from '@/utils/constants';
+import { useStatusLabels } from '@/hooks/useStatusLabels';
 import { formatDate, formatDateTime } from '@/utils/formatDate';
 import { getApiErrorMessage } from '@/utils/helpers';
 import type { Event, EventStatus } from '@/types';
@@ -43,6 +44,8 @@ interface EventFormValues {
 }
 
 export function EventsPage() {
+  const { t } = useTranslation();
+  const { eventStatus, eventStatusOptions } = useStatusLabels();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<EventStatus | undefined>();
   const [modalOpen, setModalOpen] = useState(false);
@@ -91,76 +94,72 @@ export function EventsPage() {
     try {
       if (editingEvent) {
         await updateEvent.mutateAsync({ id: editingEvent._id, payload });
-        message.success('Event updated');
+        message.success(t('events.updated'));
       } else {
         await createEvent.mutateAsync(payload);
-        message.success('Event created');
+        message.success(t('events.created'));
       }
       setModalOpen(false);
     } catch (error) {
-      message.error(getApiErrorMessage(error, 'Failed to save event'));
+      message.error(getApiErrorMessage(error, t('events.saveFailed')));
     }
   };
 
   const handleStatusChange = async (id: string, status: EventStatus) => {
     try {
       await updateStatus.mutateAsync({ id, status });
-      message.success('Event status updated');
+      message.success(t('events.statusUpdated'));
     } catch (error) {
-      message.error(getApiErrorMessage(error, 'Failed to update status'));
+      message.error(getApiErrorMessage(error, t('events.statusFailed')));
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
       await deleteEvent.mutateAsync(id);
-      message.success('Event deleted');
+      message.success(t('events.deleted'));
     } catch (error) {
-      message.error(getApiErrorMessage(error, 'Failed to delete event'));
+      message.error(getApiErrorMessage(error, t('events.deleteFailed')));
     }
   };
 
   const columns: ColumnsType<Event> = [
-    { title: 'Title', dataIndex: 'title', key: 'title' },
-    { title: 'Location', dataIndex: 'location', key: 'location' },
+    { title: t('common.title'), dataIndex: 'title', key: 'title' },
+    { title: t('common.location'), dataIndex: 'location', key: 'location' },
     {
-      title: 'Date',
+      title: t('common.date'),
       dataIndex: 'eventDate',
       key: 'eventDate',
       render: (value) => formatDate(value),
     },
     {
-      title: 'Status',
+      title: t('common.status'),
       dataIndex: 'status',
       key: 'status',
       render: (status: EventStatus) => (
-        <Tag color={STATUS_COLORS[status]}>{EVENT_STATUS_LABELS[status]}</Tag>
+        <Tag color={STATUS_COLORS[status]}>{eventStatus(status)}</Tag>
       ),
     },
     {
-      title: 'Created',
+      title: t('common.created'),
       dataIndex: 'createdAt',
       key: 'createdAt',
       render: (value) => formatDateTime(value),
     },
     {
-      title: 'Actions',
+      title: t('common.actions'),
       key: 'actions',
       render: (_, record) => (
         <Space wrap>
           <Select
             size="small"
             value={record.status}
-            style={{ width: 110 }}
+            style={{ width: 130 }}
             onChange={(value) => handleStatusChange(record._id, value)}
-            options={[
-              { value: 'draft', label: 'Draft' },
-              { value: 'active', label: 'Active' },
-              { value: 'closed', label: 'Closed' },
-            ]}
+            options={eventStatusOptions()}
           />
           <Button size="small" icon={<EditOutlined />} onClick={() => openEditModal(record)} />
-          <Popconfirm title="Delete this event?" onConfirm={() => handleDelete(record._id)}>
+          <Popconfirm title={t('events.deleteConfirm')} onConfirm={() => handleDelete(record._id)}>
             <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </Space>
@@ -171,11 +170,11 @@ export function EventsPage() {
   return (
     <div>
       <PageHeader
-        title="Events"
-        subtitle="Create and manage events"
+        title={t('events.title')}
+        subtitle={t('events.subtitle')}
         extra={
           <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
-            Add Event
+            {t('events.addEvent')}
           </Button>
         }
       />
@@ -183,18 +182,14 @@ export function EventsPage() {
       <Space style={{ marginBottom: 16 }}>
         <Select
           allowClear
-          placeholder="Filter by status"
-          style={{ width: 180 }}
+          placeholder={t('events.filterStatus')}
+          style={{ width: 200 }}
           value={statusFilter}
           onChange={(value) => {
             setPage(1);
             setStatusFilter(value);
           }}
-          options={[
-            { value: 'draft', label: 'Draft' },
-            { value: 'active', label: 'Active' },
-            { value: 'closed', label: 'Closed' },
-          ]}
+          options={eventStatusOptions()}
         />
       </Space>
 
@@ -213,46 +208,42 @@ export function EventsPage() {
       />
 
       <Modal
-        title={editingEvent ? 'Edit Event' : 'Create Event'}
+        title={editingEvent ? t('events.editEvent') : t('events.createEvent')}
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
         onOk={() => form.submit()}
         confirmLoading={createEvent.isPending || updateEvent.isPending}
         destroyOnClose
+        okText={t('common.save')}
+        cancelText={t('common.cancel')}
       >
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item
-            label="Title"
+            label={t('common.title')}
             name="title"
-            rules={[{ required: true, message: 'Title is required' }]}
+            rules={[{ required: true, message: t('events.titleRequired') }]}
           >
             <Input />
           </Form.Item>
-          <Form.Item label="Description" name="description">
+          <Form.Item label={t('common.description')} name="description">
             <Input.TextArea rows={3} />
           </Form.Item>
           <Form.Item
-            label="Location"
+            label={t('common.location')}
             name="location"
-            rules={[{ required: true, message: 'Location is required' }]}
+            rules={[{ required: true, message: t('events.locationRequired') }]}
           >
             <Input />
           </Form.Item>
           <Form.Item
-            label="Event Date"
+            label={t('events.eventDate')}
             name="eventDate"
-            rules={[{ required: true, message: 'Event date is required' }]}
+            rules={[{ required: true, message: t('events.dateRequired') }]}
           >
             <DatePicker showTime style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item label="Status" name="status">
-            <Select
-              options={[
-                { value: 'draft', label: 'Draft' },
-                { value: 'active', label: 'Active' },
-                { value: 'closed', label: 'Closed' },
-              ]}
-            />
+          <Form.Item label={t('common.status')} name="status">
+            <Select options={eventStatusOptions()} />
           </Form.Item>
         </Form>
       </Modal>

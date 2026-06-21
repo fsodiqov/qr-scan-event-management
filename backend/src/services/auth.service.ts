@@ -1,6 +1,7 @@
 import { User, IUser } from '../models/User';
 import { ROLES } from '../constants/roles';
 import { signToken } from '../utils/jwt';
+import { ERROR_CODES } from '../constants/errorCodes';
 import {
   BadRequestError,
   UnauthorizedError,
@@ -27,13 +28,13 @@ export class AuthService {
     }
 
     if (!user || !user.isActive) {
-      throw new UnauthorizedError('Invalid credentials');
+      throw new UnauthorizedError('Invalid credentials', ERROR_CODES.INVALID_CREDENTIALS);
     }
 
     const isValid = await user.comparePassword(password);
 
     if (!isValid) {
-      throw new UnauthorizedError('Invalid credentials');
+      throw new UnauthorizedError('Invalid credentials', ERROR_CODES.INVALID_CREDENTIALS);
     }
 
     const token = signToken({
@@ -50,7 +51,7 @@ export class AuthService {
     const user = await User.findById(userId);
 
     if (!user || !user.isActive) {
-      throw new UnauthorizedError('User not found or inactive');
+      throw new UnauthorizedError('User not found or inactive', ERROR_CODES.USER_NOT_FOUND_OR_INACTIVE);
     }
 
     return user;
@@ -64,7 +65,7 @@ export class AuthService {
     const existing = await User.findOne({ email: data.email.toLowerCase() });
 
     if (existing) {
-      throw new BadRequestError('Admin with this email already exists');
+      throw new BadRequestError('Admin with this email already exists', undefined, ERROR_CODES.ADMIN_EMAIL_EXISTS);
     }
 
     const user = new User({

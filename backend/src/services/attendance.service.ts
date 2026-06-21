@@ -6,6 +6,7 @@ import {
   ATTENDANCE_STATUS,
   SCAN_RESULT,
 } from '../constants/attendanceStatus';
+import { ERROR_CODES } from '../constants/errorCodes';
 import {
   BadRequestError,
   ConflictError,
@@ -59,7 +60,7 @@ export class AttendanceService {
         result: SCAN_RESULT.INVALID,
         metadata,
       });
-      throw new NotFoundError('Invalid QR token');
+      throw new NotFoundError('Invalid QR token', ERROR_CODES.INVALID_QR_TOKEN);
     }
 
     if (!user.isActive) {
@@ -70,7 +71,7 @@ export class AttendanceService {
         result: SCAN_RESULT.INVALID,
         metadata,
       });
-      throw new ForbiddenError('Participant account is inactive');
+      throw new ForbiddenError('Participant account is inactive', ERROR_CODES.PARTICIPANT_INACTIVE);
     }
 
     const existing = await Attendance.findOne({
@@ -135,13 +136,13 @@ export class AttendanceService {
       result: SCAN_RESULT.ALREADY_OUT,
       user: this.formatUser(user),
       attendance: existing,
-    });
+    }, ERROR_CODES.ALREADY_CHECKED_OUT);
   }
 
   async create(input: CreateAttendanceInput): Promise<IAttendance> {
     const user = await User.findById(input.userId);
     if (!user || !user.isActive) {
-      throw new NotFoundError('User not found');
+      throw new NotFoundError('User not found', ERROR_CODES.USER_NOT_FOUND);
     }
 
     await eventService.findById(input.eventId);
@@ -152,7 +153,7 @@ export class AttendanceService {
     });
 
     if (existing) {
-      throw new ConflictError('Attendance record already exists for this user and event');
+      throw new ConflictError('Attendance record already exists for this user and event', undefined, ERROR_CODES.ATTENDANCE_EXISTS);
     }
 
     return Attendance.create({
@@ -189,7 +190,7 @@ export class AttendanceService {
       .populate('eventId', 'title location eventDate status');
 
     if (!record) {
-      throw new NotFoundError('Attendance record not found');
+      throw new NotFoundError('Attendance record not found', ERROR_CODES.ATTENDANCE_NOT_FOUND);
     }
 
     return record;
@@ -215,7 +216,7 @@ export class AttendanceService {
       record.checkOutTime &&
       record.checkOutTime <= record.checkInTime
     ) {
-      throw new BadRequestError('Check-out time must be after check-in time');
+      throw new BadRequestError('Check-out time must be after check-in time', undefined, ERROR_CODES.CHECKOUT_BEFORE_CHECKIN);
     }
 
     await record.save();

@@ -16,12 +16,12 @@ export function errorHandler(
   _next: NextFunction,
 ): void {
   if (err instanceof AppError) {
-    sendError(res, err.statusCode, err.message, err.details);
+    sendError(res, err.statusCode, err.message, err.details, err.code);
     return;
   }
 
   if (err instanceof ZodError) {
-    sendError(res, 400, 'Validation failed', err.flatten());
+    sendError(res, 400, 'Validation failed', err.flatten(), 'VALIDATION_FAILED');
     return;
   }
 
@@ -29,12 +29,12 @@ export function errorHandler(
     const details = Object.fromEntries(
       Object.entries(err.errors).map(([key, val]) => [key, val.message]),
     );
-    sendError(res, 400, 'Database validation failed', details);
+    sendError(res, 400, 'Database validation failed', details, 'DB_VALIDATION_FAILED');
     return;
   }
 
   if ((err as { code?: number }).code === 11000) {
-    sendError(res, 409, 'Duplicate key error', (err as Error).message);
+    sendError(res, 409, 'Duplicate key error', (err as Error).message, 'DUPLICATE_KEY');
     return;
   }
 
@@ -45,5 +45,5 @@ export function errorHandler(
       ? 'Internal server error'
       : err.message || 'Internal server error';
 
-  sendError(res, 500, message);
+  sendError(res, 500, message, undefined, 'INTERNAL_SERVER_ERROR');
 }

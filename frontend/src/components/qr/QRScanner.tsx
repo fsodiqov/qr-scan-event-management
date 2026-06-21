@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Button, Card, Space } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { Html5Qrcode } from 'html5-qrcode';
 import { extractQrToken } from '@/utils/helpers';
 
@@ -11,6 +12,7 @@ interface QRScannerProps {
 const SCANNER_ID = 'qr-scanner-region';
 
 export function QRScanner({ onScan, disabled }: QRScannerProps) {
+  const { t } = useTranslation();
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +49,7 @@ export function QRScanner({ onScan, disabled }: QRScannerProps) {
 
       setIsRunning(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start camera');
+      setError(err instanceof Error ? err.message : t('scanner.cameraFailed'));
     }
   };
 
@@ -74,11 +76,11 @@ export function QRScanner({ onScan, disabled }: QRScannerProps) {
         <Space>
           {!isRunning ? (
             <Button type="primary" onClick={startScanner} disabled={disabled}>
-              Start Camera
+              {t('scanner.startCamera')}
             </Button>
           ) : (
             <Button onClick={stopScanner} disabled={disabled}>
-              Stop Camera
+              {t('scanner.stopCamera')}
             </Button>
           )}
         </Space>

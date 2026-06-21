@@ -1,6 +1,7 @@
 import { IUser } from '../models/User';
 import { User } from '../models/User';
 import { NotFoundError } from '../utils/AppError';
+import { ERROR_CODES } from '../constants/errorCodes';
 
 export interface QrValidationResult {
   user: IUser;
@@ -12,7 +13,7 @@ export class QrService {
     const user = await User.findByQrToken(token);
 
     if (!user) {
-      throw new NotFoundError('Invalid QR token');
+      throw new NotFoundError('Invalid QR token', ERROR_CODES.INVALID_QR_TOKEN);
     }
 
     return user;

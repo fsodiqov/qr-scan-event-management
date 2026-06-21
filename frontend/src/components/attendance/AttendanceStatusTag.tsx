@@ -1,5 +1,5 @@
 import { Tag } from 'antd';
-import { ATTENDANCE_STATUS_LABELS } from '@/utils/constants';
+import { useStatusLabels } from '@/hooks/useStatusLabels';
 import type { AttendanceStatus } from '@/types';
 
 const COLORS: Record<AttendanceStatus, string> = {
@@ -12,5 +12,7 @@ interface AttendanceStatusTagProps {
 }
 
 export function AttendanceStatusTag({ status }: AttendanceStatusTagProps) {
-  return <Tag color={COLORS[status]}>{ATTENDANCE_STATUS_LABELS[status]}</Tag>;
+  const { attendanceStatus } = useStatusLabels();
+
+  return <Tag color={COLORS[status]}>{attendanceStatus(status)}</Tag>;
 }

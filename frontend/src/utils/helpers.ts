@@ -1,3 +1,6 @@
+import i18n from '@/i18n';
+import type { ApiErrorResponse } from '@/types';
+
 export function extractQrToken(decodedText: string): string | null {
   const trimmed = decodedText.trim();
 
@@ -9,7 +12,7 @@ export function extractQrToken(decodedText: string): string | null {
     // Not a URL — fall through
   }
 
-  if (/^[a-f0-9]{64}$/i.test(trimmed)) {
+  if (/^[a-f0-9]{16,64}$/i.test(trimmed)) {
     return trimmed;
   }
 
@@ -17,17 +20,54 @@ export function extractQrToken(decodedText: string): string | null {
   return match?.[1] ?? null;
 }
 
-export function getApiErrorMessage(error: unknown, fallback = 'Something went wrong'): string {
+export function translateApiMessage(
+  code?: string,
+  message?: string,
+  fallback?: string,
+): string {
+  if (code) {
+    const translated = i18n.t(`errors.${code}`, { defaultValue: '' });
+    if (translated) return translated;
+  }
+
+  if (message) {
+    const messageKeyMap: Record<string, string> = {
+      'Check-in successful': 'messages.CHECK_IN_SUCCESS',
+      'Check-out successful': 'messages.CHECK_OUT_SUCCESS',
+      'Already checked out': 'messages.ALREADY_CHECKED_OUT',
+    };
+
+    const mappedKey = messageKeyMap[message];
+    if (mappedKey) {
+      return i18n.t(mappedKey);
+    }
+  }
+
+  return message ?? fallback ?? i18n.t('common.somethingWentWrong');
+}
+
+export function getApiErrorMessage(
+  error: unknown,
+  fallback?: string,
+): string {
   if (typeof error === 'object' && error !== null && 'response' in error) {
-    const response = (error as { response?: { data?: { message?: string } } }).response;
-    return response?.data?.message ?? fallback;
+    const response = (error as {
+      response?: { data?: ApiErrorResponse & { code?: string } };
+    }).response;
+    const data = response?.data;
+
+    return translateApiMessage(
+      data?.code,
+      data?.message,
+      fallback,
+    );
   }
 
   if (error instanceof Error) {
     return error.message;
   }
 
-  return fallback;
+  return fallback ?? i18n.t('common.somethingWentWrong');
 }
 
 export function getEntityId(
@@ -40,7 +80,7 @@ export function getEntityId(
 export function getEntityName(
   value: string | { name?: string; title?: string } | undefined,
 ): string {
-  if (!value) return '—';
+  if (!value) return i18n.t('common.empty');
   if (typeof value === 'string') return value;
-  return value.name ?? value.title ?? '—';
+  return value.name ?? value.title ?? i18n.t('common.empty');
 }
