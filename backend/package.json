@@ -1,6 +1,6 @@
 {
   "name": "qr-event-management-backend",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "QR Event Attendance Management System API",
   "main": "dist/index.js",
   "scripts": {

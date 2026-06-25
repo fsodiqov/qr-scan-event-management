@@ -5,6 +5,21 @@ Barcha muhim o'zgarishlar ushbu faylda qayd etiladi.
 Format [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ga asoslangan.
 Versiyalash [Semantic Versioning](https://semver.org/) (SemVer) bo'yicha yuritiladi.
 
+## [1.3.0] - 2026-06-25
+
+### Added
+
+- `useIsMobile` hook (`frontend/src/hooks/useBreakpoint.ts`) — umumiy mobil breakpoint (`lg` dan past)
+
+### Changed
+
+- Admin panel barcha sahifalar mobil responsive qilindi (8 sahifa, 9 URL)
+- AdminLayout: mobilda Drawer navigatsiya, desktopda sidebar; header ixcham (icon logout)
+- Jadval sahifalari (Users, Events, Attendance): gorizontal scroll, responsive ustunlar, kichik ekran pagination
+- PageHeader, LanguageSwitcher, QRDisplay, formlar va modallar mobilga moslashtirildi
+- `global.css`: mobil content padding (16px / 12px)
+- AuthLayout va LoginPage: `clamp()` padding
+
 ## [1.2.0] - 2026-06-25
 
 ### Added
