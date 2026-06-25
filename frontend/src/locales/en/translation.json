@@ -151,7 +151,10 @@
     "processing": "Processing scan...",
     "startCamera": "Start Camera",
     "stopCamera": "Stop Camera",
-    "cameraFailed": "Failed to start camera"
+    "cameraFailed": "Failed to start camera",
+    "cameraHttpsRequired": "Camera requires HTTPS. On your phone, open the deployed site (https://...) instead of http://192.168.x.x.",
+    "cameraPermissionDenied": "Camera permission denied. Allow camera access in browser settings and try again.",
+    "cameraNotFound": "No camera found on this device."
   },
   "status": {
     "event": {

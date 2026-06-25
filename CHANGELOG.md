@@ -5,6 +5,27 @@ Barcha muhim o'zgarishlar ushbu faylda qayd etiladi.
 Format [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ga asoslangan.
 Versiyalash [Semantic Versioning](https://semver.org/) (SemVer) bo'yicha yuritiladi.
 
+## [1.2.0] - 2026-06-25
+
+### Added
+
+- Backend Docker image (`Dockerfile`, `.dockerignore`) — Cloud Run uchun
+- Frontend Vercel deploy konfiguratsiyasi (`vercel.json`)
+- QR skaner: HTTPS, ruxsat va kamera topilmasa xabarlari (4 til)
+- CORS: `*.vercel.app` domenlariga avtomatik ruxsat
+- Root `package-lock.json` (npm workspaces)
+
+### Changed
+
+- Backend `0.0.0.0` da tinglaydi (Docker/Cloud Run)
+- QR skaner: orqa/old kamera tanlash, mobil viewport uchun `qrbox` o'lchami
+- `.env.example` fayllar production (Atlas, Vercel, Cloud Run) izohlari bilan yangilandi
+- `tsconfig.json`: seed skriptlari production builddan chiqarildi
+
+### Fixed
+
+- Mobilda kamera ishlamasligi (HTTPS, ruxsat, kamera tanlash)
+
 ## [1.1.0] - 2026-06-21
 
 ### Added
@@ -34,5 +55,6 @@ Versiyalash [Semantic Versioning](https://semver.org/) (SemVer) bo'yicha yuritil
 - Admin seed skripti
 - Arxitektura hujjati (`ARCHITECTURE.md`)
 
-[1.1.0]: https://github.com/your-org/qr-event-management/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/your-org/qr-event-management/releases/tag/v1.0.0
+[1.2.0]: https://github.com/fsodiqov/qr-scan-event-management/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/fsodiqov/qr-scan-event-management/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/fsodiqov/qr-scan-event-management/releases/tag/v1.0.0

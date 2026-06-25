@@ -151,7 +151,10 @@
     "processing": "Skanerlash qayta ishlanmoqda...",
     "startCamera": "Kamerani yoqish",
     "stopCamera": "Kamerani o'chirish",
-    "cameraFailed": "Kamerani yoqib bo'lmadi"
+    "cameraFailed": "Kamerani yoqib bo'lmadi",
+    "cameraHttpsRequired": "Kamera uchun HTTPS kerak. Telefonda http://192.168... o'rniga deploy qilingan saytni oching (https://...).",
+    "cameraPermissionDenied": "Kamera ruxsati rad etildi. Brauzer sozlamalaridan ruxsat bering va qayta urinib ko'ring.",
+    "cameraNotFound": "Ushbu qurilmada kamera topilmadi."
   },
   "status": {
     "event": {

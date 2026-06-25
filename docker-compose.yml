@@ -1,3 +1,5 @@
+# Local MongoDB — faqat Atlas ishlatmasangiz kerak.
+# Hozir backend/.env da MongoDB Atlas URI bor, shu servis ixtiyoriy.
 services:
   mongodb:
     image: mongo:7
