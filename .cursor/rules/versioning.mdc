@@ -1,0 +1,41 @@
+---
+description: Remind to update CHANGELOG and version on meaningful changes
+alwaysApply: true
+---
+
+# Versioning & Changelog
+
+This project uses **Semantic Versioning (SemVer)** with a single unified version across:
+- `package.json` (root)
+- `backend/package.json`
+- `frontend/package.json`
+- `CHANGELOG.md`
+
+## When to remind the user
+
+After completing **meaningful changes** (features, bug fixes, breaking changes, refactors that affect behavior), remind the user to:
+
+1. **Bump the version** in all three `package.json` files (keep them identical):
+   - `PATCH` (1.1.0 → 1.1.1): bug fixes only
+   - `MINOR` (1.1.0 → 1.2.0): new features, backward compatible
+   - `MAJOR` (1.1.0 → 2.0.0): breaking changes
+
+2. **Update `CHANGELOG.md`** under a new `## [X.Y.Z] - YYYY-MM-DD` section using:
+   - `Added` — new features
+   - `Changed` — changes to existing behavior
+   - `Fixed` — bug fixes
+   - `Removed` — removed features
+
+3. **Optional release steps**: `git tag -a vX.Y.Z -m "..."` and GitHub Release.
+
+## Reminder format
+
+End the response with a short note in Uzbek, e.g.:
+
+> **Versiya eslatmasi:** `CHANGELOG.md` va `package.json` (root, backend, frontend) fayllaridagi versiyani yangilashni unutmang. Bu o'zgarish uchun `MINOR` (1.2.0) yoki `PATCH` (1.1.1) mos keladi.
+
+Offer to update version and changelog if the user wants.
+
+## Skip reminder for
+
+Trivial edits (typos, comments only, formatting) that do not warrant a release.
