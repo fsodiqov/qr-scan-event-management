@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/ko';
 import 'dayjs/locale/ru';
 import 'dayjs/locale/uz-latn';
+import { useIsMobile } from '@/hooks/useBreakpoint';
 import type { AppLanguage } from '@/i18n';
 
 const LANGUAGE_OPTIONS: { value: AppLanguage; labelKey: string }[] = [
@@ -29,10 +30,13 @@ export function syncDayjsLocale(language: string): void {
 
 interface LanguageSwitcherProps {
   size?: 'small' | 'middle' | 'large';
+  compact?: boolean;
 }
 
-export function LanguageSwitcher({ size = 'middle' }: LanguageSwitcherProps) {
+export function LanguageSwitcher({ size = 'middle', compact }: LanguageSwitcherProps) {
   const { t, i18n } = useTranslation();
+  const isMobile = useIsMobile();
+  const isCompact = compact ?? isMobile;
 
   useEffect(() => {
     syncDayjsLocale(i18n.language);
@@ -45,7 +49,7 @@ export function LanguageSwitcher({ size = 'middle' }: LanguageSwitcherProps) {
       size={size}
       value={i18n.language.split('-')[0] as AppLanguage}
       onChange={(value: AppLanguage) => i18n.changeLanguage(value)}
-      style={{ minWidth: 130 }}
+      style={{ minWidth: isCompact ? 100 : 130 }}
       suffixIcon={<GlobalOutlined />}
       options={LANGUAGE_OPTIONS.map((option) => ({
         value: option.value,

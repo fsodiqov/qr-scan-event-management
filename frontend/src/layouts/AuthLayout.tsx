@@ -17,7 +17,7 @@ export function AuthLayout() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: 24,
+          padding: 'clamp(16px, 4vw, 24px)',
           background:
             'radial-gradient(circle at top, #ffffff 0%, #f1f5f9 45%, #e8edf3 100%)',
         }}

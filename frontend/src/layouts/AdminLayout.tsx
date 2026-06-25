@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Layout, Menu, Button, Typography, theme, Space } from 'antd';
+import { Layout, Menu, Button, Typography, theme, Space, Drawer } from 'antd';
 import {
   DashboardOutlined,
   TeamOutlined,
@@ -9,17 +9,21 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  MenuOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
+import { useIsMobile } from '@/hooks/useBreakpoint';
 import { ROUTES } from '@/utils/constants';
 
 const { Header, Sider, Content } = Layout;
 
 export function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const isMobile = useIsMobile();
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -39,38 +43,66 @@ export function AdminLayout() {
     navigate(ROUTES.LOGIN);
   };
 
+  const handleMenuClick = () => {
+    if (isMobile) {
+      setDrawerOpen(false);
+    }
+  };
+
+  const siderLogo = (
+    <div
+      style={{
+        height: 64,
+        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontWeight: 700,
+        fontSize: collapsed && !isMobile ? 14 : 16,
+        padding: '0 12px',
+      }}
+    >
+      {collapsed && !isMobile ? 'QR' : t('app.shortTitle')}
+    </div>
+  );
+
+  const navMenu = (
+    <Menu
+      mode="inline"
+      className="admin-sider-menu"
+      selectedKeys={[location.pathname]}
+      items={menuItems}
+      onClick={handleMenuClick}
+    />
+  );
+
   return (
     <Layout className="admin-shell">
-      <Sider
-        collapsible
-        collapsed={collapsed}
-        onCollapse={setCollapsed}
-        trigger={null}
-        breakpoint="lg"
-        theme="light"
-        style={{ borderRight: `1px solid ${token.colorBorderSecondary}` }}
-      >
-        <div
-          style={{
-            height: 64,
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 700,
-            fontSize: collapsed ? 14 : 16,
-            padding: '0 12px',
-          }}
+      {!isMobile && (
+        <Sider
+          collapsible
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
+          trigger={null}
+          theme="light"
+          style={{ borderRight: `1px solid ${token.colorBorderSecondary}` }}
         >
-          {collapsed ? 'QR' : t('app.shortTitle')}
-        </div>
-        <Menu
-          mode="inline"
-          className="admin-sider-menu"
-          selectedKeys={[location.pathname]}
-          items={menuItems}
-        />
-      </Sider>
+          {siderLogo}
+          {navMenu}
+        </Sider>
+      )}
+
+      <Drawer
+        title={t('app.shortTitle')}
+        placement="left"
+        open={isMobile && drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        styles={{ body: { padding: 0 } }}
+        width={260}
+      >
+        {navMenu}
+      </Drawer>
+
       <Layout className="admin-main">
         <Header
           style={{
@@ -78,7 +110,7 @@ export function AdminLayout() {
             lineHeight: 'normal',
             height: 64,
             background: token.colorBgContainer,
-            padding: '0 24px',
+            padding: isMobile ? '0 16px' : '0 24px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -87,14 +119,18 @@ export function AdminLayout() {
         >
           <Button
             type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
+            icon={isMobile ? <MenuOutlined /> : collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={() => (isMobile ? setDrawerOpen(true) : setCollapsed(!collapsed))}
           />
-          <Space size="middle">
-            <LanguageSwitcher size="small" />
-            <Typography.Text>{user?.name}</Typography.Text>
-            <Button icon={<LogoutOutlined />} onClick={handleLogout}>
-              {t('nav.logout')}
+          <Space size={isMobile ? 'small' : 'middle'}>
+            <LanguageSwitcher size="small" compact={isMobile} />
+            {!isMobile && <Typography.Text>{user?.name}</Typography.Text>}
+            <Button
+              icon={<LogoutOutlined />}
+              onClick={handleLogout}
+              aria-label={t('nav.logout')}
+            >
+              {isMobile ? null : t('nav.logout')}
             </Button>
           </Space>
         </Header>

@@ -11,10 +11,12 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { useDashboardStats, useRecentActivity } from '@/hooks/useDashboard';
 import { useStatusLabels } from '@/hooks/useStatusLabels';
+import { useIsMobile } from '@/hooks/useBreakpoint';
 import { formatDateTime } from '@/utils/formatDate';
 
 export function DashboardPage() {
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   const { scanResult } = useStatusLabels();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: recent, isLoading: recentLoading } = useRecentActivity();
@@ -64,7 +66,7 @@ export function DashboardPage() {
         </Col>
       </Row>
 
-      <Typography.Title level={4} style={{ marginTop: 32 }}>
+      <Typography.Title level={4} style={{ marginTop: isMobile ? 24 : 32 }}>
         {t('dashboard.recentActivity')}
       </Typography.Title>
 
@@ -73,6 +75,7 @@ export function DashboardPage() {
       ) : (
         <List
           bordered
+          size={isMobile ? 'small' : 'default'}
           dataSource={recent?.items ?? []}
           locale={{ emptyText: t('dashboard.noRecentScans') }}
           renderItem={(item) => (

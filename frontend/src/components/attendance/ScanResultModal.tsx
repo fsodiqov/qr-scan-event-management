@@ -2,6 +2,7 @@ import { Modal, Result, Typography } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { AttendanceStatusTag } from '@/components/attendance/AttendanceStatusTag';
 import { useStatusLabels } from '@/hooks/useStatusLabels';
+import { useIsMobile } from '@/hooks/useBreakpoint';
 import { translateApiMessage } from '@/utils/helpers';
 import type { ScanResponse } from '@/types';
 
@@ -19,12 +20,20 @@ export function ScanResultModal({
   onClose,
 }: ScanResultModalProps) {
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   const { scanResult } = useStatusLabels();
   const isSuccess = Boolean(result);
   const isWarning = result?.result === 'already_out';
 
   return (
-    <Modal open={open} onCancel={onClose} onOk={onClose} footer={null} centered>
+    <Modal
+      open={open}
+      onCancel={onClose}
+      onOk={onClose}
+      footer={null}
+      centered
+      width={isMobile ? '95%' : 520}
+    >
       {errorMessage ? (
         <Result status="error" title={t('scanner.scanFailedTitle')} subTitle={errorMessage} />
       ) : result ? (

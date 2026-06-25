@@ -48,7 +48,7 @@ export function LoginPage() {
         border: '1px solid #e2e8f0',
         boxShadow: '0 10px 40px rgba(15, 23, 42, 0.07)',
       }}
-      styles={{ body: { padding: '28px 28px 32px' } }}
+      styles={{ body: { padding: 'clamp(20px, 5vw, 28px) clamp(20px, 5vw, 28px) clamp(24px, 5vw, 32px)' } }}
     >
       <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 8, color: '#0f172a' }}>
         {t('auth.signIn')}

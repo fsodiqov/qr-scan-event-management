@@ -6,11 +6,13 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { QRDisplay } from '@/components/qr/QRDisplay';
 import { useRegenerateQr, useUser, useUserQr } from '@/hooks/useUsers';
+import { useIsMobile } from '@/hooks/useBreakpoint';
 import { ROUTES } from '@/utils/constants';
 import { getApiErrorMessage } from '@/utils/helpers';
 
 export function UserQrPage() {
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -40,8 +42,13 @@ export function UserQrPage() {
         title={t('users.qrTitle')}
         subtitle={user?.name}
         extra={
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(ROUTES.USERS)}>
-            {t('users.backToUsers')}
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => navigate(ROUTES.USERS)}
+            block={isMobile}
+            aria-label={t('users.backToUsers')}
+          >
+            {isMobile ? null : t('users.backToUsers')}
           </Button>
         }
       />

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { useCreateUser, useUpdateUser, useUser } from '@/hooks/useUsers';
+import { useIsMobile } from '@/hooks/useBreakpoint';
 import { ROUTES } from '@/utils/constants';
 import { getApiErrorMessage } from '@/utils/helpers';
 import type { CreateUserPayload } from '@/types';
@@ -20,6 +21,7 @@ interface UserFormValues {
 
 export function UserFormPage() {
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
@@ -80,7 +82,7 @@ export function UserFormPage() {
         subtitle={isEdit ? t('users.editSubtitle') : t('users.addSubtitle')}
       />
 
-      <Card style={{ maxWidth: 640 }}>
+      <Card style={{ maxWidth: 640, width: '100%' }}>
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item
             label={t('users.fullName')}
@@ -122,15 +124,18 @@ export function UserFormPage() {
             </Form.Item>
           )}
 
-          <Space>
+          <Space direction={isMobile ? 'vertical' : 'horizontal'} style={{ width: isMobile ? '100%' : undefined }}>
             <Button
               type="primary"
               htmlType="submit"
               loading={createUser.isPending || updateUser.isPending}
+              block={isMobile}
             >
               {isEdit ? t('users.saveChanges') : t('users.createUser')}
             </Button>
-            <Button onClick={() => navigate(ROUTES.USERS)}>{t('common.cancel')}</Button>
+            <Button onClick={() => navigate(ROUTES.USERS)} block={isMobile}>
+              {t('common.cancel')}
+            </Button>
           </Space>
         </Form>
 

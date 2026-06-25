@@ -7,12 +7,14 @@ import { AttendanceStatusTag } from '@/components/attendance/AttendanceStatusTag
 import { useAttendance } from '@/hooks/useAttendance';
 import { useEvents } from '@/hooks/useEvents';
 import { useStatusLabels } from '@/hooks/useStatusLabels';
+import { useIsMobile } from '@/hooks/useBreakpoint';
 import { formatDateTime } from '@/utils/formatDate';
 import { getEntityName } from '@/utils/helpers';
 import type { Attendance, AttendanceStatus } from '@/types';
 
 export function AttendancePage() {
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   const { attendanceStatusOptions } = useStatusLabels();
   const [page, setPage] = useState(1);
   const [eventId, setEventId] = useState<string | undefined>();
@@ -35,6 +37,7 @@ export function AttendancePage() {
     {
       title: t('common.event'),
       key: 'event',
+      responsive: ['md'],
       render: (_, record) => getEntityName(record.eventId),
     },
     {
@@ -47,6 +50,7 @@ export function AttendancePage() {
       title: t('attendance.checkOut'),
       dataIndex: 'checkOutTime',
       key: 'checkOutTime',
+      responsive: ['md'],
       render: (value) => formatDateTime(value),
     },
     {
@@ -64,11 +68,11 @@ export function AttendancePage() {
         subtitle={t('attendance.subtitle')}
       />
 
-      <Space style={{ marginBottom: 16 }} wrap>
+      <Space style={{ marginBottom: 16, width: '100%' }} wrap>
         <Select
           allowClear
           placeholder={t('attendance.filterEvent')}
-          style={{ width: 260 }}
+          style={{ width: '100%', maxWidth: 260 }}
           value={eventId}
           onChange={(value) => {
             setPage(1);
@@ -82,7 +86,7 @@ export function AttendancePage() {
         <Select
           allowClear
           placeholder={t('attendance.filterStatus')}
-          style={{ width: 200 }}
+          style={{ width: '100%', maxWidth: 200 }}
           value={status}
           onChange={(value) => {
             setPage(1);
@@ -97,12 +101,15 @@ export function AttendancePage() {
         loading={isLoading}
         columns={columns}
         dataSource={data?.records ?? []}
+        size={isMobile ? 'small' : 'middle'}
+        scroll={{ x: 'max-content' }}
         pagination={{
           current: page,
           pageSize: 10,
           total: data?.meta?.total ?? 0,
           onChange: setPage,
           showSizeChanger: false,
+          simple: isMobile,
         }}
       />
     </div>

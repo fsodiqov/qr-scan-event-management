@@ -44,3 +44,15 @@ body,
   padding: 24px;
   margin: 0 !important;
 }
+
+@media (max-width: 991px) {
+  .admin-shell .admin-content {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 575px) {
+  .admin-shell .admin-content {
+    padding: 12px;
+  }
+}

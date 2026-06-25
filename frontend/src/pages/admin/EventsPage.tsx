@@ -25,6 +25,7 @@ import {
   useUpdateEventStatus,
 } from '@/hooks/useEvents';
 import { useStatusLabels } from '@/hooks/useStatusLabels';
+import { useIsMobile } from '@/hooks/useBreakpoint';
 import { formatDate, formatDateTime } from '@/utils/formatDate';
 import { getApiErrorMessage } from '@/utils/helpers';
 import type { Event, EventStatus } from '@/types';
@@ -45,6 +46,7 @@ interface EventFormValues {
 
 export function EventsPage() {
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   const { eventStatus, eventStatusOptions } = useStatusLabels();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<EventStatus | undefined>();
@@ -125,7 +127,12 @@ export function EventsPage() {
 
   const columns: ColumnsType<Event> = [
     { title: t('common.title'), dataIndex: 'title', key: 'title' },
-    { title: t('common.location'), dataIndex: 'location', key: 'location' },
+    {
+      title: t('common.location'),
+      dataIndex: 'location',
+      key: 'location',
+      responsive: ['md'],
+    },
     {
       title: t('common.date'),
       dataIndex: 'eventDate',
@@ -144,17 +151,19 @@ export function EventsPage() {
       title: t('common.created'),
       dataIndex: 'createdAt',
       key: 'createdAt',
+      responsive: ['lg'],
       render: (value) => formatDateTime(value),
     },
     {
       title: t('common.actions'),
       key: 'actions',
+      fixed: isMobile ? 'right' : undefined,
       render: (_, record) => (
         <Space wrap>
           <Select
             size="small"
             value={record.status}
-            style={{ width: 130 }}
+            style={{ width: isMobile ? 110 : 130 }}
             onChange={(value) => handleStatusChange(record._id, value)}
             options={eventStatusOptions()}
           />
@@ -173,17 +182,17 @@ export function EventsPage() {
         title={t('events.title')}
         subtitle={t('events.subtitle')}
         extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal} block={isMobile}>
             {t('events.addEvent')}
           </Button>
         }
       />
 
-      <Space style={{ marginBottom: 16 }}>
+      <Space style={{ marginBottom: 16, width: '100%' }} wrap>
         <Select
           allowClear
           placeholder={t('events.filterStatus')}
-          style={{ width: 200 }}
+          style={{ width: '100%', maxWidth: 200 }}
           value={statusFilter}
           onChange={(value) => {
             setPage(1);
@@ -198,12 +207,15 @@ export function EventsPage() {
         loading={isLoading}
         columns={columns}
         dataSource={data?.events ?? []}
+        size={isMobile ? 'small' : 'middle'}
+        scroll={{ x: 'max-content' }}
         pagination={{
           current: page,
           pageSize: 10,
           total: data?.meta?.total ?? 0,
           onChange: setPage,
           showSizeChanger: false,
+          simple: isMobile,
         }}
       />
 
@@ -216,6 +228,8 @@ export function EventsPage() {
         destroyOnClose
         okText={t('common.save')}
         cancelText={t('common.cancel')}
+        width={isMobile ? '100%' : 520}
+        style={isMobile ? { top: 16, maxWidth: 'calc(100vw - 32px)' } : undefined}
       >
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item

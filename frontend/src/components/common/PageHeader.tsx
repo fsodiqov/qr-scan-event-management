@@ -1,5 +1,6 @@
 import { Typography } from 'antd';
 import type { ReactNode } from 'react';
+import { useIsMobile } from '@/hooks/useBreakpoint';
 
 interface PageHeaderProps {
   title: string;
@@ -8,26 +9,34 @@ interface PageHeaderProps {
 }
 
 export function PageHeader({ title, subtitle, extra }: PageHeaderProps) {
+  const isMobile = useIsMobile();
+
   return (
     <div
       style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginBottom: 24,
+        marginBottom: isMobile ? 16 : 24,
         gap: 16,
         flexWrap: 'wrap',
       }}
     >
-      <div>
-        <Typography.Title level={3} style={{ margin: 0 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <Typography.Title level={isMobile ? 4 : 3} style={{ margin: 0 }}>
           {title}
         </Typography.Title>
         {subtitle && (
-          <Typography.Text type="secondary">{subtitle}</Typography.Text>
+          <Typography.Text type="secondary" style={{ wordBreak: 'break-word' }}>
+            {subtitle}
+          </Typography.Text>
         )}
       </div>
-      {extra}
+      {extra && (
+        <div style={{ width: isMobile ? '100%' : undefined }}>
+          {extra}
+        </div>
+      )}
     </div>
   );
 }
