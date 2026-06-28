@@ -10,14 +10,24 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '@/api';
 import { queryKeys } from '@/hooks/queryKeys';
+import {
+  getPermissionsForRole,
+  hasPermission as checkPermission,
+  type Permission,
+} from '@/constants/permissions';
 import { storage } from '@/utils/storage';
-import type { LoginPayload, User } from '@/types';
+import type { AuthProfile, AuthUser, LoginPayload, Organization, Role } from '@/types';
 
 interface AuthContextValue {
-  user: User | null;
+  user: AuthUser | null;
+  organization: Organization | null;
+  role: Role | null;
+  permissions: Permission[];
+  isSuperAdmin: boolean;
+  hasPermission: (permission: Permission) => boolean;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (payload: LoginPayload) => Promise<void>;
+  login: (payload: LoginPayload) => Promise<AuthProfile>;
   logout: () => Promise<void>;
 }
 
@@ -27,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [hasToken, setHasToken] = useState(() => Boolean(storage.getToken()));
 
-  const { data: user, isLoading, isError } = useQuery({
+  const { data: profile, isLoading, isError } = useQuery({
     queryKey: queryKeys.auth.me,
     queryFn: authApi.me,
     enabled: hasToken,
@@ -42,11 +52,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [isError]);
 
   const login = useCallback(
-    async (payload: LoginPayload) => {
+    async (payload: LoginPayload): Promise<AuthProfile> => {
       const result = await authApi.login(payload);
       storage.setToken(result.token);
       setHasToken(true);
-      queryClient.setQueryData(queryKeys.auth.me, result.user);
+
+      const authProfile: AuthProfile = {
+        user: result.user,
+        organization: result.organization,
+        role: result.role,
+      };
+
+      queryClient.setQueryData(queryKeys.auth.me, authProfile);
+      return authProfile;
     },
     [queryClient],
   );
@@ -61,15 +79,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [queryClient]);
 
+  const role = profile?.role ?? null;
+  const permissions = useMemo(() => getPermissionsForRole(role), [role]);
+
   const value = useMemo<AuthContextValue>(
     () => ({
-      user: user ?? null,
-      isAuthenticated: hasToken && Boolean(user),
+      user: profile?.user ?? null,
+      organization: profile?.organization ?? null,
+      role,
+      permissions,
+      isSuperAdmin: role === 'super_admin',
+      hasPermission: (permission: Permission) => checkPermission(role, permission),
+      isAuthenticated: hasToken && Boolean(profile?.user),
       isLoading: hasToken && isLoading,
       login,
       logout,
     }),
-    [user, hasToken, isLoading, login, logout],
+    [profile, role, permissions, hasToken, isLoading, login, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

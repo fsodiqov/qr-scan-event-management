@@ -2,8 +2,9 @@ import mongoose, { Document, Schema, Types } from 'mongoose';
 import { SCAN_RESULT, ScanResult } from '../constants/attendanceStatus';
 
 export interface IScanLog extends Document {
-  userId?: Types.ObjectId;
+  participantId?: Types.ObjectId;
   eventId: Types.ObjectId;
+  organizationId: Types.ObjectId;
   scannedBy: Types.ObjectId;
   result: ScanResult;
   scannedAt: Date;
@@ -12,13 +13,18 @@ export interface IScanLog extends Document {
 
 const scanLogSchema = new Schema<IScanLog>(
   {
-    userId: {
+    participantId: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: 'Participant',
     },
     eventId: {
       type: Schema.Types.ObjectId,
       ref: 'Event',
+      required: true,
+    },
+    organizationId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Organization',
       required: true,
     },
     scannedBy: {
@@ -51,7 +57,8 @@ const scanLogSchema = new Schema<IScanLog>(
 );
 
 scanLogSchema.index({ eventId: 1, scannedAt: -1 });
-scanLogSchema.index({ userId: 1, scannedAt: -1 });
+scanLogSchema.index({ participantId: 1, scannedAt: -1 });
+scanLogSchema.index({ organizationId: 1, scannedAt: -1 });
 scanLogSchema.index({ scannedAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
 
 export const ScanLog = mongoose.model<IScanLog>('ScanLog', scanLogSchema);

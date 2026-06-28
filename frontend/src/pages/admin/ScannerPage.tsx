@@ -46,7 +46,7 @@ export function ScannerPage() {
       const details = axiosError.response?.data?.details as
         | {
             result?: string;
-            user?: ScanResponse['user'];
+            participant?: ScanResponse['participant'];
             attendance?: ScanResponse['attendance'];
           }
         | undefined;
@@ -54,7 +54,7 @@ export function ScannerPage() {
       if (
         axiosError.response?.status === 409 &&
         details?.result === 'already_out' &&
-        details.user &&
+        details.participant &&
         details.attendance
       ) {
         setScanResult({
@@ -63,7 +63,7 @@ export function ScannerPage() {
             axiosError.response.data.code,
             axiosError.response.data.message,
           ),
-          user: details.user,
+          participant: details.participant,
           attendance: details.attendance,
         });
       } else {

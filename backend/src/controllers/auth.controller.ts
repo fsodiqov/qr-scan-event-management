@@ -11,6 +11,8 @@ export class AuthController {
         data: {
           token: result.token,
           user: result.user,
+          organization: result.organization,
+          role: result.role,
         },
         message: 'Login successful',
       });
@@ -32,8 +34,21 @@ export class AuthController {
 
   async me(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const user = await authService.getProfile(req.user!.sub);
-      sendSuccess({ res, data: user });
+      const profile = await authService.getProfile(req.user!.sub);
+      sendSuccess({ res, data: profile });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateMe(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const user = await authService.updateProfile(req.user!.sub, req.body);
+      sendSuccess({
+        res,
+        data: { user },
+        message: 'Profile updated successfully',
+      });
     } catch (error) {
       next(error);
     }

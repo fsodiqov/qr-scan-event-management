@@ -5,20 +5,20 @@ import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { QRDisplay } from '@/components/qr/QRDisplay';
-import { useRegenerateQr, useUser, useUserQr } from '@/hooks/useUsers';
+import { useParticipant, useParticipantQr, useRegenerateParticipantQr } from '@/hooks/useParticipants';
 import { useIsMobile } from '@/hooks/useBreakpoint';
 import { ROUTES } from '@/utils/constants';
 import { getApiErrorMessage } from '@/utils/helpers';
 
-export function UserQrPage() {
+export function ParticipantQrPage() {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const { data: user, isLoading: userLoading } = useUser(id);
-  const { data: qr, isLoading: qrLoading, refetch } = useUserQr(id);
-  const regenerateQr = useRegenerateQr();
+  const { data: participant, isLoading: participantLoading } = useParticipant(id);
+  const { data: qr, isLoading: qrLoading, refetch } = useParticipantQr(id);
+  const regenerateQr = useRegenerateParticipantQr();
 
   const handleRegenerate = async () => {
     if (!id) return;
@@ -26,29 +26,29 @@ export function UserQrPage() {
     try {
       await regenerateQr.mutateAsync(id);
       await refetch();
-      message.success(t('users.qrRegenerated'));
+      message.success(t('participants.qrRegenerated'));
     } catch (error) {
-      message.error(getApiErrorMessage(error, t('users.qrRegenerateFailed')));
+      message.error(getApiErrorMessage(error, t('participants.qrRegenerateFailed')));
     }
   };
 
-  if (userLoading || qrLoading) {
+  if (participantLoading || qrLoading) {
     return <LoadingSpinner tip={t('common.loading')} />;
   }
 
   return (
     <div>
       <PageHeader
-        title={t('users.qrTitle')}
-        subtitle={user?.name}
+        title={t('participants.qrTitle')}
+        subtitle={participant?.name}
         extra={
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => navigate(ROUTES.USERS)}
+            onClick={() => navigate(ROUTES.PARTICIPANTS)}
             block={isMobile}
-            aria-label={t('users.backToUsers')}
+            aria-label={t('participants.backToList')}
           >
-            {isMobile ? null : t('users.backToUsers')}
+            {isMobile ? null : t('participants.backToList')}
           </Button>
         }
       />
@@ -57,7 +57,7 @@ export function UserQrPage() {
         <QRDisplay
           qrDataUrl={qr.qrDataUrl}
           qrUrl={qr.qrUrl}
-          name={user?.name}
+          name={participant?.name}
           onRegenerate={handleRegenerate}
           isRegenerating={regenerateQr.isPending}
         />

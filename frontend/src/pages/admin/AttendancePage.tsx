@@ -31,8 +31,8 @@ export function AttendancePage() {
   const columns: ColumnsType<Attendance> = [
     {
       title: t('common.participant'),
-      key: 'user',
-      render: (_, record) => getEntityName(record.userId),
+      key: 'participant',
+      render: (_, record) => getEntityName(record.participantId),
     },
     {
       title: t('common.event'),

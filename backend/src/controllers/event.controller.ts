@@ -2,11 +2,12 @@ import { Request, Response, NextFunction } from 'express';
 import { eventService } from '../services/event.service';
 import { sendSuccess } from '../utils/apiResponse';
 import { getParamId } from '../utils/params';
+import { getAuthContext } from '../middleware/auth';
 
 export class EventController {
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const event = await eventService.create(req.body, req.user!.sub);
+      const event = await eventService.create(req.body, getAuthContext(req));
       sendSuccess({
         res,
         statusCode: 201,
@@ -20,7 +21,7 @@ export class EventController {
 
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await eventService.findAll(req.query);
+      const result = await eventService.findAll(getAuthContext(req), req.query);
       sendSuccess({
         res,
         data: result.events,
@@ -33,7 +34,10 @@ export class EventController {
 
   async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await eventService.findByIdWithStats(getParamId(req.params.id));
+      const result = await eventService.findByIdWithStats(
+        getAuthContext(req),
+        getParamId(req.params.id),
+      );
       sendSuccess({ res, data: result });
     } catch (error) {
       next(error);
@@ -42,7 +46,11 @@ export class EventController {
 
   async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const event = await eventService.update(getParamId(req.params.id), req.body);
+      const event = await eventService.update(
+        getAuthContext(req),
+        getParamId(req.params.id),
+        req.body,
+      );
       sendSuccess({
         res,
         data: event,
@@ -60,6 +68,7 @@ export class EventController {
   ): Promise<void> {
     try {
       const event = await eventService.updateStatus(
+        getAuthContext(req),
         getParamId(req.params.id),
         req.body.status,
       );
@@ -75,7 +84,7 @@ export class EventController {
 
   async remove(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      await eventService.delete(getParamId(req.params.id));
+      await eventService.delete(getAuthContext(req), getParamId(req.params.id));
       sendSuccess({
         res,
         message: 'Event deleted successfully',

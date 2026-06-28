@@ -1,11 +1,11 @@
 import { Types } from 'mongoose';
-import { User } from '../models/User';
+import { Participant } from '../models/Participant';
 import { Attendance } from '../models/Attendance';
 import { ScanLog } from '../models/ScanLog';
-import { ROLES } from '../constants/roles';
 import { ATTENDANCE_STATUS } from '../constants/attendanceStatus';
-import { PaginationMeta } from '../types';
+import { PaginationMeta, AuthContext } from '../types';
 import { buildPaginationMeta, parsePagination } from '../utils/pagination';
+import { requireOrganizationId, scopeToOrganization } from '../utils/tenantScope';
 
 export interface DashboardStats {
   totalParticipants: number;
@@ -18,26 +18,31 @@ export interface RecentActivityItem {
   _id: Types.ObjectId;
   result: string;
   scannedAt: Date;
-  user?: { name: string; phone?: string };
+  participant?: { name: string; phone?: string };
   event?: { title: string };
   scannedBy?: { name: string };
 }
 
 export class DashboardService {
-  async getStats(eventId?: string): Promise<DashboardStats> {
-    const participantFilter = {
-      role: ROLES.PARTICIPANT,
+  async getStats(auth: AuthContext, eventId?: string): Promise<DashboardStats> {
+    const organizationId = requireOrganizationId(auth);
+
+    const participantFilter: Record<string, unknown> = {
+      organizationId: new Types.ObjectId(organizationId),
       isActive: true,
     };
 
-    const attendanceFilter: Record<string, unknown> = {};
+    const attendanceFilter: Record<string, unknown> = {
+      organizationId: new Types.ObjectId(organizationId),
+    };
 
     if (eventId) {
+      participantFilter.eventId = new Types.ObjectId(eventId);
       attendanceFilter.eventId = new Types.ObjectId(eventId);
     }
 
     const [totalParticipants, checkedIn, checkedOut] = await Promise.all([
-      User.countDocuments(participantFilter),
+      Participant.countDocuments(participantFilter),
       Attendance.countDocuments({
         ...attendanceFilter,
         status: ATTENDANCE_STATUS.CHECKED_IN,
@@ -57,12 +62,13 @@ export class DashboardService {
   }
 
   async getRecentActivity(
+    auth: AuthContext,
     eventId?: string,
     page?: number,
     limit?: number,
   ): Promise<{ items: RecentActivityItem[]; meta: PaginationMeta }> {
     const pagination = parsePagination(page, limit);
-    const filter: Record<string, unknown> = {};
+    const filter: Record<string, unknown> = scopeToOrganization(auth, {});
 
     if (eventId) {
       filter.eventId = new Types.ObjectId(eventId);
@@ -70,7 +76,7 @@ export class DashboardService {
 
     const [items, total] = await Promise.all([
       ScanLog.find(filter)
-        .populate('userId', 'name phone')
+        .populate('participantId', 'name phone')
         .populate('eventId', 'title')
         .populate('scannedBy', 'name')
         .sort({ scannedAt: -1 })

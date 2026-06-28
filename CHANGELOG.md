@@ -5,6 +5,27 @@ Barcha muhim o'zgarishlar ushbu faylda qayd etiladi.
 Format [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ga asoslangan.
 Versiyalash [Semantic Versioning](https://semver.org/) (SemVer) bo'yicha yuritiladi.
 
+## [1.4.0] - 2026-06-27
+
+### Added
+
+- `npm run seed:reset` — dev/demo uchun DB tozalash va qayta seed
+- `backend/src/scripts/seedUserUtils.ts` — legacy email-login qidirish va upsert
+- `migrate:login` skriptiga email-format loginlarni normalizatsiya qilish (2-bosqich)
+
+### Changed
+
+- Auth userlar uchun `email` maydoni `login` ga almashtirildi (min 1 belgi, email formati talab qilinmaydi)
+- Login API: `POST /api/v1/auth/login` body `{ login, password }`
+- Seed skriptlari mavjud userlarni yangilaydi (legacy `owner@example.com` → `owner`)
+- Frontend: barcha auth/staff UI da "Email" o'rniga "Login"
+- Seed credential: `superadmin` / `owner` (email emas)
+- `ARCHITECTURE.md`, `.env.example`, `delete.md` yangilandi
+
+### Fixed
+
+- Eski DB da `email` qiymati `login` sifatida qolgani uchun kirish ishlamasligi
+
 ## [1.3.0] - 2026-06-25
 
 ### Added

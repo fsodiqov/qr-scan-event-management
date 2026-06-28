@@ -1,7 +1,7 @@
 import { FilterQuery, Types } from 'mongoose';
 import { Attendance, IAttendance } from '../models/Attendance';
 import { ScanLog } from '../models/ScanLog';
-import { User } from '../models/User';
+import { Participant } from '../models/Participant';
 import {
   ATTENDANCE_STATUS,
   SCAN_RESULT,
@@ -20,9 +20,11 @@ import {
   ScanInput,
   UpdateAttendanceInput,
 } from '../validators/attendance.validator';
-import { PaginationMeta } from '../types';
+import { PaginationMeta, AuthContext } from '../types';
 import { eventService } from './event.service';
 import { qrService } from './qr.service';
+import { participantService } from './participant.service';
+import { requireOrganizationId, scopeToOrganization } from '../utils/tenantScope';
 
 export interface AttendanceListResult {
   records: IAttendance[];
@@ -32,30 +34,33 @@ export interface AttendanceListResult {
 export interface ScanResultPayload {
   result: typeof SCAN_RESULT.CHECK_IN | typeof SCAN_RESULT.CHECK_OUT;
   attendance: IAttendance;
-  user: {
+  participant: {
     id: string;
     name: string;
     phone?: string;
-    organization?: string;
+    email?: string;
   };
   message: string;
 }
 
 export class AttendanceService {
   async scan(
+    auth: AuthContext,
     input: ScanInput,
     scannedBy: string,
     metadata?: Record<string, unknown>,
   ): Promise<ScanResultPayload> {
     const { qrToken, eventId } = input;
+    const organizationId = requireOrganizationId(auth);
 
-    await eventService.assertEventActiveForScan(eventId);
+    const event = await eventService.assertEventActiveForScan(auth, eventId);
 
-    const user = await qrService.validateTokenOrNull(qrToken);
+    const participant = await qrService.validateTokenOrNull(qrToken);
 
-    if (!user) {
+    if (!participant) {
       await ScanLog.create({
         eventId: new Types.ObjectId(eventId),
+        organizationId: new Types.ObjectId(organizationId),
         scannedBy: new Types.ObjectId(scannedBy),
         result: SCAN_RESULT.INVALID,
         metadata,
@@ -63,33 +68,43 @@ export class AttendanceService {
       throw new NotFoundError('Invalid QR token', ERROR_CODES.INVALID_QR_TOKEN);
     }
 
-    if (!user.isActive) {
+    if (!participant.isActive) {
       await ScanLog.create({
-        userId: user._id,
+        participantId: participant._id,
         eventId: new Types.ObjectId(eventId),
+        organizationId: new Types.ObjectId(organizationId),
         scannedBy: new Types.ObjectId(scannedBy),
         result: SCAN_RESULT.INVALID,
         metadata,
       });
-      throw new ForbiddenError('Participant account is inactive', ERROR_CODES.PARTICIPANT_INACTIVE);
+      throw new ForbiddenError('Participant is inactive', ERROR_CODES.PARTICIPANT_INACTIVE);
     }
 
+    await participantService.assertParticipantInEvent(
+      participant,
+      eventId,
+      organizationId,
+    );
+
     const existing = await Attendance.findOne({
-      userId: user._id,
+      participantId: participant._id,
       eventId: new Types.ObjectId(eventId),
+      organizationId: new Types.ObjectId(organizationId),
     });
 
     if (!existing) {
       const attendance = await Attendance.create({
-        userId: user._id,
+        participantId: participant._id,
         eventId: new Types.ObjectId(eventId),
+        organizationId: event.organizationId,
         checkInTime: new Date(),
         status: ATTENDANCE_STATUS.CHECKED_IN,
       });
 
       await ScanLog.create({
-        userId: user._id,
+        participantId: participant._id,
         eventId: new Types.ObjectId(eventId),
+        organizationId: new Types.ObjectId(organizationId),
         scannedBy: new Types.ObjectId(scannedBy),
         result: SCAN_RESULT.CHECK_IN,
         metadata,
@@ -98,7 +113,7 @@ export class AttendanceService {
       return {
         result: SCAN_RESULT.CHECK_IN,
         attendance,
-        user: this.formatUser(user),
+        participant: this.formatParticipant(participant),
         message: 'Check-in successful',
       };
     }
@@ -109,8 +124,9 @@ export class AttendanceService {
       await existing.save();
 
       await ScanLog.create({
-        userId: user._id,
+        participantId: participant._id,
         eventId: new Types.ObjectId(eventId),
+        organizationId: new Types.ObjectId(organizationId),
         scannedBy: new Types.ObjectId(scannedBy),
         result: SCAN_RESULT.CHECK_OUT,
         metadata,
@@ -119,14 +135,15 @@ export class AttendanceService {
       return {
         result: SCAN_RESULT.CHECK_OUT,
         attendance: existing,
-        user: this.formatUser(user),
+        participant: this.formatParticipant(participant),
         message: 'Check-out successful',
       };
     }
 
     await ScanLog.create({
-      userId: user._id,
+      participantId: participant._id,
       eventId: new Types.ObjectId(eventId),
+      organizationId: new Types.ObjectId(organizationId),
       scannedBy: new Types.ObjectId(scannedBy),
       result: SCAN_RESULT.ALREADY_OUT,
       metadata,
@@ -134,43 +151,56 @@ export class AttendanceService {
 
     throw new ConflictError('Already checked out', {
       result: SCAN_RESULT.ALREADY_OUT,
-      user: this.formatUser(user),
+      participant: this.formatParticipant(participant),
       attendance: existing,
     }, ERROR_CODES.ALREADY_CHECKED_OUT);
   }
 
-  async create(input: CreateAttendanceInput): Promise<IAttendance> {
-    const user = await User.findById(input.userId);
-    if (!user || !user.isActive) {
-      throw new NotFoundError('User not found', ERROR_CODES.USER_NOT_FOUND);
+  async create(auth: AuthContext, input: CreateAttendanceInput): Promise<IAttendance> {
+    const organizationId = requireOrganizationId(auth);
+
+    const participant = await Participant.findOne({
+      _id: input.participantId,
+      organizationId: new Types.ObjectId(organizationId),
+    });
+
+    if (!participant || !participant.isActive) {
+      throw new NotFoundError('Participant not found', ERROR_CODES.PARTICIPANT_NOT_FOUND);
     }
 
-    await eventService.findById(input.eventId);
+    const event = await eventService.findById(auth, input.eventId);
+
+    await participantService.assertParticipantInEvent(
+      participant,
+      input.eventId,
+      organizationId,
+    );
 
     const existing = await Attendance.findOne({
-      userId: input.userId,
+      participantId: input.participantId,
       eventId: input.eventId,
     });
 
     if (existing) {
-      throw new ConflictError('Attendance record already exists for this user and event', undefined, ERROR_CODES.ATTENDANCE_EXISTS);
+      throw new ConflictError('Attendance record already exists for this participant and event', undefined, ERROR_CODES.ATTENDANCE_EXISTS);
     }
 
     return Attendance.create({
-      userId: new Types.ObjectId(input.userId),
+      participantId: new Types.ObjectId(input.participantId),
       eventId: new Types.ObjectId(input.eventId),
+      organizationId: event.organizationId,
       checkInTime: input.checkInTime ?? new Date(),
       status: input.status ?? ATTENDANCE_STATUS.CHECKED_IN,
     });
   }
 
-  async findAll(query: ListAttendanceQuery): Promise<AttendanceListResult> {
+  async findAll(auth: AuthContext, query: ListAttendanceQuery): Promise<AttendanceListResult> {
     const { page, limit, skip } = parsePagination(query.page, query.limit);
-    const filter = this.buildFilter(query);
+    const filter = this.buildFilter(auth, query);
 
     const [records, total] = await Promise.all([
       Attendance.find(filter)
-        .populate('userId', 'name phone organization photoUrl')
+        .populate('participantId', 'name phone email photoUrl')
         .populate('eventId', 'title location eventDate status')
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -184,9 +214,10 @@ export class AttendanceService {
     };
   }
 
-  async findById(id: string): Promise<IAttendance> {
-    const record = await Attendance.findById(id)
-      .populate('userId', 'name phone organization photoUrl')
+  async findById(auth: AuthContext, id: string): Promise<IAttendance> {
+    const filter = scopeToOrganization(auth, { _id: id });
+    const record = await Attendance.findOne(filter)
+      .populate('participantId', 'name phone email photoUrl')
       .populate('eventId', 'title location eventDate status');
 
     if (!record) {
@@ -196,16 +227,16 @@ export class AttendanceService {
     return record;
   }
 
-  async findByEvent(eventId: string, query: ListAttendanceQuery): Promise<AttendanceListResult> {
-    return this.findAll({ ...query, eventId });
+  async findByEvent(auth: AuthContext, eventId: string, query: ListAttendanceQuery): Promise<AttendanceListResult> {
+    return this.findAll(auth, { ...query, eventId });
   }
 
-  async findByUser(userId: string, query: ListAttendanceQuery): Promise<AttendanceListResult> {
-    return this.findAll({ ...query, userId });
+  async findByParticipant(auth: AuthContext, participantId: string, query: ListAttendanceQuery): Promise<AttendanceListResult> {
+    return this.findAll(auth, { ...query, participantId });
   }
 
-  async update(id: string, input: UpdateAttendanceInput): Promise<IAttendance> {
-    const record = await this.findById(id);
+  async update(auth: AuthContext, id: string, input: UpdateAttendanceInput): Promise<IAttendance> {
+    const record = await this.findById(auth, id);
 
     if (input.checkInTime) record.checkInTime = input.checkInTime;
     if (input.checkOutTime) record.checkOutTime = input.checkOutTime;
@@ -223,20 +254,23 @@ export class AttendanceService {
     return record;
   }
 
-  async delete(id: string): Promise<void> {
-    const record = await this.findById(id);
+  async delete(auth: AuthContext, id: string): Promise<void> {
+    const record = await this.findById(auth, id);
     await record.deleteOne();
   }
 
-  private buildFilter(query: ListAttendanceQuery): FilterQuery<IAttendance> {
-    const filter: FilterQuery<IAttendance> = {};
+  private buildFilter(auth: AuthContext, query: ListAttendanceQuery): FilterQuery<IAttendance> {
+    const filter: FilterQuery<IAttendance> = scopeToOrganization(
+      auth,
+      {},
+    ) as FilterQuery<IAttendance>;
 
     if (query.eventId) {
       filter.eventId = new Types.ObjectId(query.eventId);
     }
 
-    if (query.userId) {
-      filter.userId = new Types.ObjectId(query.userId);
+    if (query.participantId) {
+      filter.participantId = new Types.ObjectId(query.participantId);
     }
 
     if (query.status) {
@@ -246,17 +280,17 @@ export class AttendanceService {
     return filter;
   }
 
-  private formatUser(user: {
+  private formatParticipant(participant: {
     _id: Types.ObjectId;
     name: string;
     phone?: string;
-    organization?: string;
+    email?: string;
   }) {
     return {
-      id: user._id.toString(),
-      name: user.name,
-      phone: user.phone,
-      organization: user.organization,
+      id: participant._id.toString(),
+      name: participant.name,
+      phone: participant.phone,
+      email: participant.email,
     };
   }
 }

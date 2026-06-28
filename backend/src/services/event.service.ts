@@ -15,8 +15,9 @@ import {
   UpdateEventInput,
 } from '../validators/event.validator';
 import { EventStatus } from '../constants/eventStatus';
-import { PaginationMeta } from '../types';
+import { PaginationMeta, AuthContext } from '../types';
 import { ATTENDANCE_STATUS } from '../constants/attendanceStatus';
+import { requireOrganizationId, scopeToOrganization } from '../utils/tenantScope';
 
 export interface EventListResult {
   events: IEvent[];
@@ -36,22 +37,28 @@ export interface EventDetailResult {
 export class EventService {
   async create(
     input: CreateEventInput,
-    createdBy: string,
+    auth: AuthContext,
   ): Promise<IEvent> {
+    const organizationId = requireOrganizationId(auth);
+
     const event = new Event({
       ...input,
       status: input.status ?? EVENT_STATUS.DRAFT,
-      createdBy: new Types.ObjectId(createdBy),
+      organizationId: new Types.ObjectId(organizationId),
+      createdBy: new Types.ObjectId(auth.userId),
     });
 
     await event.save();
     return event;
   }
 
-  async findAll(query: ListEventsQuery): Promise<EventListResult> {
+  async findAll(auth: AuthContext, query: ListEventsQuery): Promise<EventListResult> {
     const { page, limit, skip } = parsePagination(query.page, query.limit);
 
-    const filter: FilterQuery<IEvent> = {};
+    const filter: FilterQuery<IEvent> = scopeToOrganization(
+      auth,
+      {},
+    ) as FilterQuery<IEvent>;
 
     if (query.status) {
       filter.status = query.status;
@@ -65,7 +72,7 @@ export class EventService {
 
     const [events, total] = await Promise.all([
       Event.find(filter)
-        .populate('createdBy', 'name email')
+        .populate('createdBy', 'name login')
         .sort({ eventDate: -1 })
         .skip(skip)
         .limit(limit),
@@ -78,8 +85,9 @@ export class EventService {
     };
   }
 
-  async findById(id: string): Promise<IEvent> {
-    const event = await Event.findById(id).populate('createdBy', 'name email');
+  async findById(auth: AuthContext, id: string): Promise<IEvent> {
+    const filter = scopeToOrganization(auth, { _id: id });
+    const event = await Event.findOne(filter).populate('createdBy', 'name login');
 
     if (!event) {
       throw new NotFoundError('Event not found', ERROR_CODES.EVENT_NOT_FOUND);
@@ -88,8 +96,8 @@ export class EventService {
     return event;
   }
 
-  async findByIdWithStats(id: string): Promise<EventDetailResult> {
-    const event = await this.findById(id);
+  async findByIdWithStats(auth: AuthContext, id: string): Promise<EventDetailResult> {
+    const event = await this.findById(auth, id);
 
     const [totalAttendance, checkedIn, checkedOut] = await Promise.all([
       Attendance.countDocuments({ eventId: id }),
@@ -114,8 +122,8 @@ export class EventService {
     };
   }
 
-  async update(id: string, input: UpdateEventInput): Promise<IEvent> {
-    const event = await this.findById(id);
+  async update(auth: AuthContext, id: string, input: UpdateEventInput): Promise<IEvent> {
+    const event = await this.findById(auth, id);
 
     if (input.title) event.title = input.title;
     if (input.description !== undefined) event.description = input.description;
@@ -127,15 +135,15 @@ export class EventService {
     return event;
   }
 
-  async updateStatus(id: string, status: EventStatus): Promise<IEvent> {
-    const event = await this.findById(id);
+  async updateStatus(auth: AuthContext, id: string, status: EventStatus): Promise<IEvent> {
+    const event = await this.findById(auth, id);
     event.status = status;
     await event.save();
     return event;
   }
 
-  async delete(id: string): Promise<void> {
-    const event = await this.findById(id);
+  async delete(auth: AuthContext, id: string): Promise<void> {
+    const event = await this.findById(auth, id);
 
     const attendanceCount = await Attendance.countDocuments({ eventId: id });
 
@@ -150,8 +158,8 @@ export class EventService {
     await event.deleteOne();
   }
 
-  async assertEventActiveForScan(eventId: string): Promise<IEvent> {
-    const event = await this.findById(eventId);
+  async assertEventActiveForScan(auth: AuthContext, eventId: string): Promise<IEvent> {
+    const event = await this.findById(auth, eventId);
 
     if (event.status === EVENT_STATUS.CLOSED) {
       throw new BadRequestError('Event is closed', undefined, ERROR_CODES.EVENT_CLOSED);

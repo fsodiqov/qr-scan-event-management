@@ -81,7 +81,7 @@ export function DashboardPage() {
           renderItem={(item) => (
             <List.Item>
               <List.Item.Meta
-                title={`${scanResult(item.result)} — ${item.userId?.name ?? t('common.unknown')}`}
+                title={`${scanResult(item.result)} — ${item.participantId?.name ?? t('common.unknown')}`}
                 description={`${item.eventId?.title ?? t('common.event')} · ${formatDateTime(item.scannedAt)}`}
               />
             </List.Item>

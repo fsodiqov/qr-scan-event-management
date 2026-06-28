@@ -1,10 +1,18 @@
-export type Role = 'admin' | 'participant';
+export type Role = 'super_admin' | 'owner' | 'admin' | 'operator';
+
+export type OrgRole = 'owner' | 'admin' | 'operator';
+
+export type StaffRole = 'admin' | 'operator';
 
 export type EventStatus = 'draft' | 'active' | 'closed';
 
 export type AttendanceStatus = 'checked_in' | 'checked_out';
 
 export type ScanResult = 'check_in' | 'check_out' | 'already_out' | 'invalid';
+
+export type OrganizationStatus = 'active' | 'suspended';
+
+export type SubscriptionStatus = 'active' | 'inactive';
 
 export interface PaginationMeta {
   page: number;
@@ -28,16 +36,75 @@ export interface ApiErrorResponse {
   details?: unknown;
 }
 
-export interface User {
+export interface AuthUser {
+  id: string;
+  name: string;
+  login?: string;
+  phone?: string;
+  photoUrl?: string;
+}
+
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  logo?: string;
+  status?: OrganizationStatus;
+  subscriptionId?: string | Subscription;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AuthProfile {
+  user: AuthUser;
+  organization?: Organization;
+  role?: Role;
+}
+
+export interface Participant {
   _id: string;
+  organizationId: string;
+  eventId: string | Event;
   name: string;
   email?: string;
   phone?: string;
-  organization?: string;
   photoUrl?: string;
-  role: Role;
   qrToken?: string;
   isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StaffUser {
+  id: string;
+  name: string;
+  login?: string;
+  phone?: string;
+  photoUrl?: string;
+  role: OrgRole;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface OrganizationUser {
+  id: string;
+  userId: string;
+  name: string;
+  login?: string;
+  phone?: string;
+  photoUrl?: string;
+  role: OrgRole;
+  status: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface Subscription {
+  _id: string;
+  name: string;
+  planCode: string;
+  status: SubscriptionStatus;
+  limits?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 }
@@ -49,7 +116,8 @@ export interface Event {
   location: string;
   eventDate: string;
   status: EventStatus;
-  createdBy: string | { _id: string; name: string; email?: string };
+  organizationId?: string;
+  createdBy: string | { _id: string; name: string; login?: string };
   createdAt: string;
   updatedAt: string;
 }
@@ -66,8 +134,9 @@ export interface EventDetail {
 
 export interface Attendance {
   _id: string;
-  userId: string | User;
+  participantId: string | Participant;
   eventId: string | Event;
+  organizationId?: string;
   checkInTime?: string;
   checkOutTime?: string;
   status: AttendanceStatus;
@@ -82,11 +151,22 @@ export interface DashboardStats {
   currentlyInside: number;
 }
 
+export interface PlatformDashboardStats {
+  totalOrganizations: number;
+  activeOrganizations: number;
+  suspendedOrganizations: number;
+  totalSubscriptions: number;
+  activeSubscriptions: number;
+  totalEvents: number;
+  totalParticipants: number;
+  totalAttendanceRecords: number;
+}
+
 export interface RecentActivity {
   _id: string;
   result: ScanResult;
   scannedAt: string;
-  userId?: { name: string; phone?: string };
+  participantId?: { name: string; phone?: string };
   eventId?: { title: string };
   scannedBy?: { name: string };
 }
@@ -98,39 +178,140 @@ export interface QrCodeData {
 }
 
 export interface LoginPayload {
-  email?: string;
-  phone?: string;
+  login: string;
   password: string;
 }
 
 export interface LoginResponse {
   token: string;
-  user: User;
+  user: AuthUser;
+  organization?: Organization;
+  role: Role;
 }
 
-export interface CreateUserPayload {
+export interface UpdateProfilePayload {
+  name?: string;
+  login?: string;
+  currentPassword?: string;
+  newPassword?: string;
+}
+
+export interface CreateStaffPayload {
+  name: string;
+  login: string;
+  phone?: string;
+  password?: string;
+  photoUrl?: string;
+  role?: StaffRole;
+}
+
+export interface UpdateStaffPayload {
+  name?: string;
+  login?: string;
+  phone?: string;
+  password?: string;
+  photoUrl?: string;
+  isActive?: boolean;
+  role?: StaffRole;
+}
+
+export interface CreateStaffResponse {
+  user: StaffUser;
+  tempPassword?: string;
+}
+
+export interface CreateParticipantPayload {
+  eventId: string;
   name: string;
   email?: string;
   phone?: string;
-  password?: string;
-  organization?: string;
   photoUrl?: string;
-  role?: Role;
 }
 
-export interface UpdateUserPayload {
+export interface UpdateParticipantPayload {
   name?: string;
   email?: string;
   phone?: string;
-  password?: string;
-  organization?: string;
   photoUrl?: string;
   isActive?: boolean;
 }
 
-export interface CreateUserResponse {
-  user: User;
+export interface CreateOrganizationUserPayload {
+  name: string;
+  login: string;
+  phone?: string;
+  password?: string;
+  photoUrl?: string;
+  role: StaffRole;
+}
+
+export interface UpdateOrganizationUserPayload {
+  name?: string;
+  login?: string;
+  phone?: string;
+  password?: string;
+  photoUrl?: string;
+  role?: StaffRole;
+  status?: 'active' | 'disabled';
+  isActive?: boolean;
+}
+
+export interface CreateOrganizationUserResponse {
+  member: OrganizationUser;
   tempPassword?: string;
+}
+
+export interface CreateOrganizationOwnerPayload {
+  name: string;
+  login: string;
+  phone?: string;
+  password?: string;
+}
+
+export interface CreateOrganizationPayload {
+  name: string;
+  slug?: string;
+  logo?: string;
+  subscriptionId?: string;
+  owner: CreateOrganizationOwnerPayload;
+}
+
+export interface CreateOrganizationOwnerInfo {
+  id: string;
+  name: string;
+  login: string;
+}
+
+export interface CreateOrganizationResponse {
+  organization: Organization;
+  owner: CreateOrganizationOwnerInfo;
+  tempPassword?: string;
+}
+
+export interface UpdateOrganizationPayload {
+  name?: string;
+  slug?: string;
+  logo?: string | null;
+  subscriptionId?: string | null;
+  status?: OrganizationStatus;
+}
+
+export interface UpdateMyOrganizationPayload {
+  name?: string;
+  logo?: string | null;
+}
+
+export interface CreateSubscriptionPayload {
+  name: string;
+  planCode: 'starter';
+  status?: SubscriptionStatus;
+  limits?: Record<string, unknown>;
+}
+
+export interface UpdateSubscriptionPayload {
+  name?: string;
+  status?: SubscriptionStatus;
+  limits?: Record<string, unknown>;
 }
 
 export interface CreateEventPayload {
@@ -154,24 +335,42 @@ export interface ScanPayload {
   eventId: string;
 }
 
+export interface ScanParticipantInfo {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+}
+
 export interface ScanResponse {
   result: ScanResult;
   attendance: Attendance;
-  user: {
-    id: string;
-    name: string;
-    phone?: string;
-    organization?: string;
-  };
+  participant: ScanParticipantInfo;
   message: string;
 }
 
-export interface ListUsersParams {
+export interface ListStaffParams {
   page?: number;
   limit?: number;
   search?: string;
-  role?: Role;
+  role?: OrgRole;
   isActive?: boolean;
+}
+
+export interface ListParticipantsParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  eventId?: string;
+  isActive?: boolean;
+}
+
+export interface ListOrganizationUsersParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  role?: OrgRole;
+  status?: string;
 }
 
 export interface ListEventsParams {
@@ -184,6 +383,19 @@ export interface ListAttendanceParams {
   page?: number;
   limit?: number;
   eventId?: string;
-  userId?: string;
+  participantId?: string;
   status?: AttendanceStatus;
+}
+
+export interface ListOrganizationsParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: OrganizationStatus;
+}
+
+export interface ListSubscriptionsParams {
+  page?: number;
+  limit?: number;
+  status?: SubscriptionStatus;
 }

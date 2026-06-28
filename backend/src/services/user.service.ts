@@ -1,145 +1,179 @@
-import QRCode from 'qrcode';
-import { FilterQuery } from 'mongoose';
+import { FilterQuery, Types } from 'mongoose';
 import { User, IUser } from '../models/User';
-import { ROLES } from '../constants/roles';
+import { OrganizationUser, IOrganizationUser } from '../models/OrganizationUser';
+import { ORG_ROLES } from '../constants/roles';
+import { ORG_USER_STATUS } from '../constants/organizationUserStatus';
 import { ERROR_CODES } from '../constants/errorCodes';
 import {
-  BadRequestError,
   ConflictError,
+  ForbiddenError,
   NotFoundError,
 } from '../utils/AppError';
 import { buildPaginationMeta, parsePagination } from '../utils/pagination';
-import { generateQrToken, buildQrUrl, QR_CODE_OPTIONS } from '../utils/qrToken';
 import {
   CreateUserInput,
   ListUsersQuery,
   UpdateUserInput,
 } from '../validators/user.validator';
-import { PaginationMeta } from '../types';
+import { PaginationMeta, AuthContext } from '../types';
+import { requireOrganizationId } from '../utils/tenantScope';
+import { generateQrToken } from '../utils/qrToken';
+
+export interface StaffListItem {
+  id: string;
+  name: string;
+  login?: string;
+  phone?: string;
+  photoUrl?: string;
+  role: string;
+  isActive: boolean;
+  createdAt: Date;
+}
 
 export interface UserListResult {
-  users: IUser[];
+  users: StaffListItem[];
   meta: PaginationMeta;
 }
 
-export interface QrCodeResult {
-  qrToken: string;
-  qrUrl: string;
-  qrDataUrl: string;
-}
-
 export class UserService {
-  async create(input: CreateUserInput): Promise<{ user: IUser; tempPassword?: string }> {
-    const role = input.role ?? ROLES.PARTICIPANT;
+  async create(
+    auth: AuthContext,
+    input: CreateUserInput,
+  ): Promise<{ user: StaffListItem; tempPassword?: string }> {
+    const organizationId = requireOrganizationId(auth);
 
-    if (role === ROLES.ADMIN) {
-      if (!input.email) {
-        throw new BadRequestError('Email is required for admin users', undefined, ERROR_CODES.EMAIL_REQUIRED_ADMIN);
-      }
-      if (!input.password) {
-        throw new BadRequestError('Password is required for admin users', undefined, ERROR_CODES.PASSWORD_REQUIRED_ADMIN);
-      }
-    }
-
-    if (role === ROLES.PARTICIPANT && !input.phone) {
-      throw new BadRequestError('Phone is required for participants', undefined, ERROR_CODES.PHONE_REQUIRED_PARTICIPANT);
-    }
-
-    if (input.email) {
-      const existingEmail = await User.findOne({
-        email: input.email.toLowerCase(),
+    const existingLogin = await User.findOne({ login: input.login.trim() });
+    if (existingLogin) {
+      const existingMembership = await OrganizationUser.findOne({
+        userId: existingLogin._id,
       });
-      if (existingEmail) {
-        throw new ConflictError('Email already in use', undefined, ERROR_CODES.EMAIL_ALREADY_IN_USE);
+      if (existingMembership) {
+        throw new ConflictError('User already belongs to an organization', undefined, ERROR_CODES.USER_ALREADY_IN_ORG);
       }
     }
 
-    if (input.phone) {
-      const existingPhone = await User.findOne({ phone: input.phone });
-      if (existingPhone) {
-        throw new ConflictError('Phone number already in use', undefined, ERROR_CODES.PHONE_ALREADY_IN_USE);
-      }
-    }
-
-    let tempPassword: string | undefined;
+    const tempPassword = input.password ?? generateQrToken().slice(0, 10);
 
     const user = new User({
       name: input.name,
-      email: input.email?.toLowerCase(),
+      login: input.login.trim(),
       phone: input.phone,
-      organization: input.organization,
       photoUrl: input.photoUrl || undefined,
-      role,
+      passwordHash: tempPassword,
       isActive: true,
+      isSuperAdmin: false,
     });
-
-    if (role === ROLES.PARTICIPANT) {
-      tempPassword = input.password ?? this.generateTempPassword();
-      user.passwordHash = tempPassword;
-    } else if (input.password) {
-      user.passwordHash = input.password;
-    }
 
     await user.save();
 
-    return { user, tempPassword: role === ROLES.PARTICIPANT ? tempPassword : undefined };
+    await OrganizationUser.create({
+      organizationId: new Types.ObjectId(organizationId),
+      userId: user._id,
+      role: input.role,
+      status: ORG_USER_STATUS.ACTIVE,
+    });
+
+    return {
+      user: this.formatStaff(user, input.role),
+      tempPassword: input.password ? undefined : tempPassword,
+    };
   }
 
-  async findAll(query: ListUsersQuery): Promise<UserListResult> {
+  async findAll(auth: AuthContext, query: ListUsersQuery): Promise<UserListResult> {
+    const organizationId = requireOrganizationId(auth);
     const { page, limit, skip } = parsePagination(query.page, query.limit);
 
-    const filter: FilterQuery<IUser> = {};
+    const filter: FilterQuery<IOrganizationUser> = {
+      organizationId: new Types.ObjectId(organizationId),
+      role: { $ne: ORG_ROLES.OWNER },
+    };
 
-    if (query.role) {
-      filter.role = query.role;
-    } else {
-      filter.role = ROLES.PARTICIPANT;
-    }
+    if (query.role) filter.role = query.role;
+
+    const orgUsers = await OrganizationUser.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const userIds = orgUsers.map((ou) => ou.userId);
+    const users = await User.find({ _id: { $in: userIds } });
+    const userMap = new Map(users.map((u) => [u._id.toString(), u]));
+
+    let staffList = orgUsers
+      .map((ou) => {
+        const user = userMap.get(ou.userId.toString());
+        if (!user) return null;
+        return this.formatStaff(user, ou.role, ou);
+      })
+      .filter((item): item is StaffListItem => item !== null);
 
     if (query.isActive !== undefined) {
-      filter.isActive = query.isActive;
-    } else {
-      filter.isActive = true;
+      staffList = staffList.filter((s) => s.isActive === query.isActive);
     }
 
     if (query.search) {
-      filter.$or = [
-        { name: { $regex: query.search, $options: 'i' } },
-        { phone: { $regex: query.search, $options: 'i' } },
-        { organization: { $regex: query.search, $options: 'i' } },
-      ];
+      const search = query.search.toLowerCase();
+      staffList = staffList.filter(
+        (s) =>
+          s.name.toLowerCase().includes(search) ||
+          s.login?.toLowerCase().includes(search) ||
+          s.phone?.includes(search),
+      );
     }
 
-    const [users, total] = await Promise.all([
-      User.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
-      User.countDocuments(filter),
-    ]);
+    const total = await OrganizationUser.countDocuments(filter);
 
     return {
-      users,
+      users: staffList,
       meta: buildPaginationMeta(total, page, limit),
     };
   }
 
-  async findById(id: string): Promise<IUser> {
-    const user = await User.findById(id);
+  async findById(auth: AuthContext, id: string): Promise<StaffListItem> {
+    const organizationId = requireOrganizationId(auth);
+    const orgUser = await OrganizationUser.findOne({
+      userId: new Types.ObjectId(id),
+      organizationId: new Types.ObjectId(organizationId),
+    });
 
+    if (!orgUser) {
+      throw new NotFoundError('User not found', ERROR_CODES.USER_NOT_FOUND);
+    }
+
+    const user = await User.findById(id);
     if (!user) {
       throw new NotFoundError('User not found', ERROR_CODES.USER_NOT_FOUND);
     }
 
-    return user;
+    return this.formatStaff(user, orgUser.role, orgUser);
   }
 
-  async update(id: string, input: UpdateUserInput): Promise<IUser> {
-    const user = await this.findById(id);
+  async update(auth: AuthContext, id: string, input: UpdateUserInput): Promise<StaffListItem> {
+    const organizationId = requireOrganizationId(auth);
+    const orgUser = await OrganizationUser.findOne({
+      userId: new Types.ObjectId(id),
+      organizationId: new Types.ObjectId(organizationId),
+    });
 
-    if (input.email && input.email !== user.email) {
-      const existing = await User.findOne({ email: input.email.toLowerCase() });
+    if (!orgUser) {
+      throw new NotFoundError('User not found', ERROR_CODES.USER_NOT_FOUND);
+    }
+
+    if (orgUser.role === ORG_ROLES.OWNER) {
+      throw new ForbiddenError('Cannot modify organization owner', ERROR_CODES.INSUFFICIENT_PERMISSIONS);
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      throw new NotFoundError('User not found', ERROR_CODES.USER_NOT_FOUND);
+    }
+
+    if (input.login && input.login.trim() !== user.login) {
+      const existing = await User.findOne({ login: input.login.trim() });
       if (existing && existing._id.toString() !== id) {
-        throw new ConflictError('Email already in use', undefined, ERROR_CODES.EMAIL_ALREADY_IN_USE);
+        throw new ConflictError('Login already in use', undefined, ERROR_CODES.LOGIN_ALREADY_IN_USE);
       }
-      user.email = input.email.toLowerCase();
+      user.login = input.login.trim();
     }
 
     if (input.phone && input.phone !== user.phone) {
@@ -151,56 +185,60 @@ export class UserService {
     }
 
     if (input.name) user.name = input.name;
-    if (input.organization !== undefined) user.organization = input.organization;
-    if (input.photoUrl !== undefined) {
-      user.photoUrl = input.photoUrl || undefined;
-    }
+    if (input.photoUrl !== undefined) user.photoUrl = input.photoUrl || undefined;
     if (input.isActive !== undefined) user.isActive = input.isActive;
     if (input.password) user.passwordHash = input.password;
+    if (input.role) orgUser.role = input.role;
 
     await user.save();
-    return user;
+    await orgUser.save();
+
+    return this.formatStaff(user, orgUser.role, orgUser);
   }
 
-  async softDelete(id: string): Promise<IUser> {
-    const user = await this.findById(id);
-    user.isActive = false;
-    await user.save();
-    return user;
-  }
+  async softDelete(auth: AuthContext, id: string): Promise<StaffListItem> {
+    const organizationId = requireOrganizationId(auth);
+    const orgUser = await OrganizationUser.findOne({
+      userId: new Types.ObjectId(id),
+      organizationId: new Types.ObjectId(organizationId),
+    });
 
-  async getQrCode(userId: string): Promise<QrCodeResult> {
-    const user = await this.findById(userId);
-
-    if (!user.qrToken) {
-      throw new BadRequestError('User does not have a QR token', undefined, ERROR_CODES.NO_QR_TOKEN);
+    if (!orgUser) {
+      throw new NotFoundError('User not found', ERROR_CODES.USER_NOT_FOUND);
     }
 
-    const qrUrl = buildQrUrl(user.qrToken);
-    const qrDataUrl = await QRCode.toDataURL(user.qrToken, QR_CODE_OPTIONS);
+    if (orgUser.role === ORG_ROLES.OWNER) {
+      throw new ForbiddenError('Cannot remove organization owner', ERROR_CODES.INSUFFICIENT_PERMISSIONS);
+    }
 
+    orgUser.status = ORG_USER_STATUS.DISABLED;
+    await orgUser.save();
+
+    const user = await User.findById(id);
+    if (user) {
+      user.isActive = false;
+      await user.save();
+      return this.formatStaff(user, orgUser.role, orgUser);
+    }
+
+    throw new NotFoundError('User not found', ERROR_CODES.USER_NOT_FOUND);
+  }
+
+  private formatStaff(
+    user: IUser,
+    role: string,
+    orgUser?: IOrganizationUser,
+  ): StaffListItem {
     return {
-      qrToken: user.qrToken,
-      qrUrl,
-      qrDataUrl,
+      id: user._id.toString(),
+      name: user.name,
+      login: user.login,
+      phone: user.phone,
+      photoUrl: user.photoUrl,
+      role,
+      isActive: user.isActive && orgUser?.status === ORG_USER_STATUS.ACTIVE,
+      createdAt: orgUser?.createdAt ?? user.createdAt,
     };
-  }
-
-  async regenerateQrToken(userId: string): Promise<QrCodeResult> {
-    const user = await this.findById(userId);
-
-    if (user.role !== ROLES.PARTICIPANT) {
-      throw new BadRequestError('Only participants can have QR tokens', undefined, ERROR_CODES.PARTICIPANTS_ONLY_QR);
-    }
-
-    user.qrToken = generateQrToken();
-    await user.save();
-
-    return this.getQrCode(userId);
-  }
-
-  private generateTempPassword(): string {
-    return generateQrToken().slice(0, 10);
   }
 }
 

@@ -5,8 +5,9 @@ import {
 } from '../constants/attendanceStatus';
 
 export interface IAttendance extends Document {
-  userId: Types.ObjectId;
+  participantId: Types.ObjectId;
   eventId: Types.ObjectId;
+  organizationId: Types.ObjectId;
   checkInTime?: Date;
   checkOutTime?: Date;
   status: AttendanceStatus;
@@ -16,14 +17,19 @@ export interface IAttendance extends Document {
 
 const attendanceSchema = new Schema<IAttendance>(
   {
-    userId: {
+    participantId: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: 'Participant',
       required: true,
     },
     eventId: {
       type: Schema.Types.ObjectId,
       ref: 'Event',
+      required: true,
+    },
+    organizationId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Organization',
       required: true,
     },
     checkInTime: {
@@ -50,9 +56,11 @@ const attendanceSchema = new Schema<IAttendance>(
   },
 );
 
-attendanceSchema.index({ userId: 1, eventId: 1 }, { unique: true });
+attendanceSchema.index({ participantId: 1, eventId: 1 }, { unique: true });
 attendanceSchema.index({ eventId: 1, status: 1 });
-attendanceSchema.index({ userId: 1, createdAt: -1 });
+attendanceSchema.index({ participantId: 1, createdAt: -1 });
+attendanceSchema.index({ organizationId: 1 });
+attendanceSchema.index({ organizationId: 1, eventId: 1 });
 
 attendanceSchema.pre('save', function (next) {
   if (

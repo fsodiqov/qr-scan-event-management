@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { attendanceService } from '../services/attendance.service';
 import { sendSuccess } from '../utils/apiResponse';
 import { getParamId } from '../utils/params';
+import { getAuthContext } from '../middleware/auth';
 
 export class AttendanceController {
   async scan(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -12,6 +13,7 @@ export class AttendanceController {
       };
 
       const result = await attendanceService.scan(
+        getAuthContext(req),
         req.body,
         req.user!.sub,
         metadata,
@@ -29,7 +31,7 @@ export class AttendanceController {
 
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const record = await attendanceService.create(req.body);
+      const record = await attendanceService.create(getAuthContext(req), req.body);
       sendSuccess({
         res,
         statusCode: 201,
@@ -43,7 +45,7 @@ export class AttendanceController {
 
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await attendanceService.findAll(req.query);
+      const result = await attendanceService.findAll(getAuthContext(req), req.query);
       sendSuccess({
         res,
         data: result.records,
@@ -56,7 +58,10 @@ export class AttendanceController {
 
   async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const record = await attendanceService.findById(getParamId(req.params.id));
+      const record = await attendanceService.findById(
+        getAuthContext(req),
+        getParamId(req.params.id),
+      );
       sendSuccess({ res, data: record });
     } catch (error) {
       next(error);
@@ -70,6 +75,7 @@ export class AttendanceController {
   ): Promise<void> {
     try {
       const result = await attendanceService.findByEvent(
+        getAuthContext(req),
         getParamId(req.params.eventId),
         req.query,
       );
@@ -83,14 +89,15 @@ export class AttendanceController {
     }
   }
 
-  async getByUser(
+  async getByParticipant(
     req: Request,
     res: Response,
     next: NextFunction,
   ): Promise<void> {
     try {
-      const result = await attendanceService.findByUser(
-        getParamId(req.params.userId),
+      const result = await attendanceService.findByParticipant(
+        getAuthContext(req),
+        getParamId(req.params.participantId),
         req.query,
       );
       sendSuccess({
@@ -105,7 +112,11 @@ export class AttendanceController {
 
   async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const record = await attendanceService.update(getParamId(req.params.id), req.body);
+      const record = await attendanceService.update(
+        getAuthContext(req),
+        getParamId(req.params.id),
+        req.body,
+      );
       sendSuccess({
         res,
         data: record,
@@ -118,7 +129,7 @@ export class AttendanceController {
 
   async remove(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      await attendanceService.delete(getParamId(req.params.id));
+      await attendanceService.delete(getAuthContext(req), getParamId(req.params.id));
       sendSuccess({
         res,
         message: 'Attendance record deleted successfully',

@@ -7,7 +7,7 @@ export const scanSchema = z.object({
 });
 
 export const createAttendanceSchema = z.object({
-  userId: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid user ID'),
+  participantId: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid participant ID'),
   eventId: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid event ID'),
   checkInTime: z.coerce.date().optional(),
   status: z
@@ -34,7 +34,7 @@ export const listAttendanceSchema = z.object({
     .string()
     .regex(/^[a-f\d]{24}$/i)
     .optional(),
-  userId: z
+  participantId: z
     .string()
     .regex(/^[a-f\d]{24}$/i)
     .optional(),
@@ -51,8 +51,8 @@ export const eventIdAttendanceParamSchema = z.object({
   eventId: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid event ID'),
 });
 
-export const userIdAttendanceParamSchema = z.object({
-  userId: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid user ID'),
+export const participantIdAttendanceParamSchema = z.object({
+  participantId: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid participant ID'),
 });
 
 export type ScanInput = z.infer<typeof scanSchema>;

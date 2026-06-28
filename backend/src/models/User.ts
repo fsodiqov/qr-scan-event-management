@@ -1,30 +1,22 @@
-import mongoose, { Document, Model, Schema } from 'mongoose';
+import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { ROLES, Role } from '../constants/roles';
-import { generateQrToken } from '../utils/qrToken';
 
 const BCRYPT_ROUNDS = 12;
 
 export interface IUser extends Document {
   name: string;
-  email?: string;
+  login?: string;
   phone?: string;
   passwordHash?: string;
-  organization?: string;
   photoUrl?: string;
-  role: Role;
-  qrToken?: string;
+  isSuperAdmin: boolean;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidate: string): Promise<boolean>;
 }
 
-export interface IUserModel extends Model<IUser> {
-  findByQrToken(token: string): Promise<IUser | null>;
-}
-
-const userSchema = new Schema<IUser, IUserModel>(
+const userSchema = new Schema<IUser>(
   {
     name: {
       type: String,
@@ -32,10 +24,9 @@ const userSchema = new Schema<IUser, IUserModel>(
       trim: true,
       maxlength: 120,
     },
-    email: {
+    login: {
       type: String,
       trim: true,
-      lowercase: true,
       sparse: true,
       unique: true,
       maxlength: 255,
@@ -50,25 +41,14 @@ const userSchema = new Schema<IUser, IUserModel>(
       type: String,
       select: false,
     },
-    organization: {
-      type: String,
-      trim: true,
-      maxlength: 200,
-    },
     photoUrl: {
       type: String,
       trim: true,
       maxlength: 500,
     },
-    role: {
-      type: String,
-      enum: Object.values(ROLES),
-      required: true,
-    },
-    qrToken: {
-      type: String,
-      unique: true,
-      sparse: true,
+    isSuperAdmin: {
+      type: Boolean,
+      default: false,
     },
     isActive: {
       type: Boolean,
@@ -88,15 +68,10 @@ const userSchema = new Schema<IUser, IUserModel>(
   },
 );
 
-userSchema.index({ role: 1, isActive: 1 });
-userSchema.index({ phone: 1 });
-userSchema.index({ name: 'text', phone: 'text', organization: 'text' });
+userSchema.index({ isActive: 1 });
+userSchema.index({ name: 'text', phone: 'text', login: 'text' });
 
 userSchema.pre('save', async function (next) {
-  if (this.isNew && this.role === ROLES.PARTICIPANT && !this.qrToken) {
-    this.qrToken = generateQrToken();
-  }
-
   if (!this.isModified('passwordHash') || !this.passwordHash) {
     return next();
   }
@@ -117,8 +92,4 @@ userSchema.methods.comparePassword = async function (
   return bcrypt.compare(candidate, this.passwordHash);
 };
 
-userSchema.statics.findByQrToken = function (token: string) {
-  return this.findOne({ qrToken: token, isActive: true });
-};
-
-export const User = mongoose.model<IUser, IUserModel>('User', userSchema);
+export const User = mongoose.model<IUser>('User', userSchema);

@@ -8,7 +8,10 @@ import type {
 } from '@/types';
 
 export const attendanceApi = {
-  async list(params?: ListAttendanceParams): Promise<{ records: Attendance[]; meta?: ApiResponse<Attendance[]>['meta'] }> {
+  async list(params?: ListAttendanceParams): Promise<{
+    records: Attendance[];
+    meta?: ApiResponse<Attendance[]>['meta'];
+  }> {
     const { data } = await apiClient.get<ApiResponse<Attendance[]>>('/attendance', { params });
     return { records: data.data ?? [], meta: data.meta };
   },
@@ -16,6 +19,14 @@ export const attendanceApi = {
   async getByEvent(eventId: string, params?: ListAttendanceParams) {
     const { data } = await apiClient.get<ApiResponse<Attendance[]>>(
       `/attendance/event/${eventId}`,
+      { params },
+    );
+    return { records: data.data ?? [], meta: data.meta };
+  },
+
+  async getByParticipant(participantId: string, params?: ListAttendanceParams) {
+    const { data } = await apiClient.get<ApiResponse<Attendance[]>>(
+      `/attendance/participant/${participantId}`,
       { params },
     );
     return { records: data.data ?? [], meta: data.meta };

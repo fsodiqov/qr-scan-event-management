@@ -210,7 +210,8 @@ qr-event-management/
 
 | Collection   | Purpose                              | Key Indexes                                      |
 |--------------|--------------------------------------|--------------------------------------------------|
-| `users`      | Admins and participants              | `email` (unique, sparse), `phone`, `qrToken` (unique), `role` |
+| `users`      | Staff accounts (auth)                | `login` (unique, sparse), `phone`                |
+| `participants` | Event attendees (no auth)          | `phone`, `qrToken` (unique)                      |
 | `events`     | Event metadata                       | `eventDate`, `status`, `createdBy`               |
 | `attendance` | One record per user per event        | Compound unique: `{ userId, eventId }`           |
 | `scan_logs`  | Audit trail for every scan attempt   | `{ eventId, scannedAt }`, `{ userId }`           |
@@ -223,8 +224,8 @@ qr-event-management/
 |-----------------|----------|------------------------------------|
 | `_id`           | ObjectId | PK                                 |
 | `name`          | string   | Required                           |
-| `email`         | string   | Required for admin; optional for participant |
-| `phone`         | string   | Required for participant           |
+| `login`         | string   | Required for staff; min 1 character, not email format |
+| `phone`         | string   | Optional contact                   |
 | `passwordHash`  | string   | Admin only (bcrypt)                |
 | `organization`  | string   | Optional                           |
 | `photoUrl`      | string   | Optional                           |
@@ -276,7 +277,7 @@ qr-event-management/
 
 ### User Model
 
-- **Schema fields:** name, email, phone, passwordHash, organization, photoUrl, role, qrToken, isActive
+- **Schema fields:** name, login, phone, passwordHash, photoUrl, isSuperAdmin, isActive
 - **Hooks:** pre-save → hash password (admin only), auto-generate `qrToken` on create
 - **Methods:** `comparePassword(candidate)`
 - **Statics:** `findByQrToken(token)`

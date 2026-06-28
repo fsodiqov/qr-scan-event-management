@@ -1,12 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import { dashboardService } from '../services/dashboard.service';
 import { sendSuccess } from '../utils/apiResponse';
+import { getAuthContext } from '../middleware/auth';
 
 export class DashboardController {
   async getStats(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const eventId = req.query.eventId as string | undefined;
-      const stats = await dashboardService.getStats(eventId);
+      const stats = await dashboardService.getStats(getAuthContext(req), eventId);
       sendSuccess({ res, data: stats });
     } catch (error) {
       next(error);
@@ -19,6 +20,7 @@ export class DashboardController {
       const page = req.query.page ? Number(req.query.page) : undefined;
       const limit = req.query.limit ? Number(req.query.limit) : undefined;
       const result = await dashboardService.getRecentActivity(
+        getAuthContext(req),
         eventId,
         page,
         limit,

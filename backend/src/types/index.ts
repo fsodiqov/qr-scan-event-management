@@ -2,8 +2,9 @@ import { Role } from '../constants/roles';
 
 export interface JwtPayload {
   sub: string;
+  organizationId?: string;
   role: Role;
-  email?: string;
+  login?: string;
   phone?: string;
 }
 
@@ -18,4 +19,10 @@ export interface PaginationQuery {
   page: number;
   limit: number;
   skip: number;
+}
+
+export interface AuthContext {
+  userId: string;
+  organizationId?: string;
+  role: Role;
 }

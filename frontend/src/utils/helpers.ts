@@ -71,10 +71,11 @@ export function getApiErrorMessage(
 }
 
 export function getEntityId(
-  value: string | { _id: string } | undefined,
+  value: string | { _id?: string; id?: string } | undefined,
 ): string | undefined {
   if (!value) return undefined;
-  return typeof value === 'string' ? value : value._id;
+  if (typeof value === 'string') return value;
+  return value._id ?? value.id;
 }
 
 export function getEntityName(

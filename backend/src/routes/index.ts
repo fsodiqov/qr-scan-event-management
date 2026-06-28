@@ -5,6 +5,11 @@ import eventRoutes from './event.routes';
 import attendanceRoutes from './attendance.routes';
 import qrRoutes from './qr.routes';
 import dashboardRoutes from './dashboard.routes';
+import organizationRoutes from './organization.routes';
+import organizationUserRoutes from './organizationUser.routes';
+import subscriptionRoutes from './subscription.routes';
+import participantRoutes from './participant.routes';
+import platformDashboardRoutes from './platformDashboard.routes';
 
 const router = Router();
 
@@ -15,8 +20,13 @@ router.get('/health', (_req, res) => {
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/events', eventRoutes);
+router.use('/participants', participantRoutes);
 router.use('/attendance', attendanceRoutes);
 router.use('/qr', qrRoutes);
 router.use('/dashboard', dashboardRoutes);
+router.use('/organizations', organizationRoutes);
+router.use('/organization-users', organizationUserRoutes);
+router.use('/subscriptions', subscriptionRoutes);
+router.use('/platform/dashboard', platformDashboardRoutes);
 
 export default router;

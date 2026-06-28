@@ -1,27 +1,28 @@
 import { Router } from 'express';
 import { attendanceController } from '../controllers/attendance.controller';
 import { authenticate } from '../middleware/auth';
-import { authorize, authorizeSelfOrAdmin } from '../middleware/authorize';
+import { authorizePermission } from '../middleware/authorize';
+import { requireOrganization } from '../middleware/tenant';
 import { validate } from '../middleware/validate';
-import { ROLES } from '../constants/roles';
+import { PERMISSIONS } from '../constants/permissions';
 import { scanRateLimiter } from '../middleware/rateLimiter';
 import {
   attendanceIdParamSchema,
   createAttendanceSchema,
   eventIdAttendanceParamSchema,
   listAttendanceSchema,
+  participantIdAttendanceParamSchema,
   scanSchema,
   updateAttendanceSchema,
-  userIdAttendanceParamSchema,
 } from '../validators/attendance.validator';
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authenticate, requireOrganization);
 
 router.post(
   '/scan',
-  authorize(ROLES.ADMIN),
+  authorizePermission(PERMISSIONS.ORG_ATTENDANCE_SCAN),
   scanRateLimiter,
   validate(scanSchema),
   attendanceController.scan.bind(attendanceController),
@@ -29,44 +30,44 @@ router.post(
 
 router.post(
   '/',
-  authorize(ROLES.ADMIN),
+  authorizePermission(PERMISSIONS.ORG_ATTENDANCE_MANAGE),
   validate(createAttendanceSchema),
   attendanceController.create.bind(attendanceController),
 );
 
 router.get(
   '/',
-  authorize(ROLES.ADMIN),
+  authorizePermission(PERMISSIONS.ORG_ATTENDANCE_MANAGE),
   validate(listAttendanceSchema, 'query'),
   attendanceController.list.bind(attendanceController),
 );
 
 router.get(
   '/event/:eventId',
-  authorize(ROLES.ADMIN),
+  authorizePermission(PERMISSIONS.ORG_ATTENDANCE_MANAGE),
   validate(eventIdAttendanceParamSchema, 'params'),
   validate(listAttendanceSchema, 'query'),
   attendanceController.getByEvent.bind(attendanceController),
 );
 
 router.get(
-  '/user/:userId',
-  validate(userIdAttendanceParamSchema, 'params'),
-  authorizeSelfOrAdmin,
+  '/participant/:participantId',
+  authorizePermission(PERMISSIONS.ORG_ATTENDANCE_MANAGE),
+  validate(participantIdAttendanceParamSchema, 'params'),
   validate(listAttendanceSchema, 'query'),
-  attendanceController.getByUser.bind(attendanceController),
+  attendanceController.getByParticipant.bind(attendanceController),
 );
 
 router.get(
   '/:id',
-  authorize(ROLES.ADMIN),
+  authorizePermission(PERMISSIONS.ORG_ATTENDANCE_MANAGE),
   validate(attendanceIdParamSchema, 'params'),
   attendanceController.getById.bind(attendanceController),
 );
 
 router.put(
   '/:id',
-  authorize(ROLES.ADMIN),
+  authorizePermission(PERMISSIONS.ORG_ATTENDANCE_MANAGE),
   validate(attendanceIdParamSchema, 'params'),
   validate(updateAttendanceSchema),
   attendanceController.update.bind(attendanceController),
@@ -74,7 +75,7 @@ router.put(
 
 router.delete(
   '/:id',
-  authorize(ROLES.ADMIN),
+  authorizePermission(PERMISSIONS.ORG_ATTENDANCE_MANAGE),
   validate(attendanceIdParamSchema, 'params'),
   attendanceController.remove.bind(attendanceController),
 );

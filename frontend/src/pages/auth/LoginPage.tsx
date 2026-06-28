@@ -5,17 +5,17 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { getApiErrorMessage } from '@/utils/helpers';
-import { ROUTES } from '@/utils/constants';
+import { getDefaultRouteForRole } from '@/utils/authRedirect';
 
 interface LoginFormValues {
-  email: string;
+  login: string;
   password: string;
 }
 
 // TODO: remove before production — dev/test login defaults (see backend seed.ts)
 const DEV_LOGIN_DEFAULTS: LoginFormValues = {
-  email: 'admin@example.com',
-  password: 'admin123456',
+  login: 'owner',
+  password: 'owner123456',
 };
 
 export function LoginPage() {
@@ -31,8 +31,8 @@ export function LoginPage() {
     setLoading(true);
 
     try {
-      await login(values);
-      navigate(ROUTES.DASHBOARD);
+      const profile = await login(values);
+      navigate(getDefaultRouteForRole(profile.role));
     } catch (err) {
       setError(getApiErrorMessage(err, t('auth.loginFailed')));
     } finally {
@@ -69,14 +69,11 @@ export function LoginPage() {
         initialValues={import.meta.env.DEV ? DEV_LOGIN_DEFAULTS : undefined}
       >
         <Form.Item
-          label={t('common.email')}
-          name="email"
-          rules={[
-            { required: true, message: t('auth.emailRequired') },
-            { type: 'email', message: t('auth.emailInvalid') },
-          ]}
+          label={t('common.login')}
+          name="login"
+          rules={[{ required: true, message: t('auth.loginRequired') }]}
         >
-          <Input placeholder={t('auth.emailPlaceholder')} size="large" />
+          <Input placeholder={t('auth.loginPlaceholder')} size="large" />
         </Form.Item>
 
         <Form.Item

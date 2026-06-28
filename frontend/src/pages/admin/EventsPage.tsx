@@ -16,6 +16,8 @@ import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/contexts/AuthContext';
+import { PERMISSIONS } from '@/constants/permissions';
 import { PageHeader } from '@/components/common/PageHeader';
 import {
   useCreateEvent,
@@ -46,6 +48,8 @@ interface EventFormValues {
 
 export function EventsPage() {
   const { t } = useTranslation();
+  const { hasPermission } = useAuth();
+  const canManageEvents = hasPermission(PERMISSIONS.ORG_EVENTS_MANAGE);
   const isMobile = useIsMobile();
   const { eventStatus, eventStatusOptions } = useStatusLabels();
   const [page, setPage] = useState(1);
@@ -160,17 +164,23 @@ export function EventsPage() {
       fixed: isMobile ? 'right' : undefined,
       render: (_, record) => (
         <Space wrap>
-          <Select
-            size="small"
-            value={record.status}
-            style={{ width: isMobile ? 110 : 130 }}
-            onChange={(value) => handleStatusChange(record._id, value)}
-            options={eventStatusOptions()}
-          />
-          <Button size="small" icon={<EditOutlined />} onClick={() => openEditModal(record)} />
-          <Popconfirm title={t('events.deleteConfirm')} onConfirm={() => handleDelete(record._id)}>
-            <Button size="small" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
+          {canManageEvents ? (
+            <>
+              <Select
+                size="small"
+                value={record.status}
+                style={{ width: isMobile ? 110 : 130 }}
+                onChange={(value) => handleStatusChange(record._id, value)}
+                options={eventStatusOptions()}
+              />
+              <Button size="small" icon={<EditOutlined />} onClick={() => openEditModal(record)} />
+              <Popconfirm title={t('events.deleteConfirm')} onConfirm={() => handleDelete(record._id)}>
+                <Button size="small" danger icon={<DeleteOutlined />} />
+              </Popconfirm>
+            </>
+          ) : (
+            <Tag color={STATUS_COLORS[record.status]}>{eventStatus(record.status)}</Tag>
+          )}
         </Space>
       ),
     },
@@ -182,9 +192,11 @@ export function EventsPage() {
         title={t('events.title')}
         subtitle={t('events.subtitle')}
         extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal} block={isMobile}>
-            {t('events.addEvent')}
-          </Button>
+          canManageEvents ? (
+            <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal} block={isMobile}>
+              {t('events.addEvent')}
+            </Button>
+          ) : undefined
         }
       />
 

@@ -1,22 +1,17 @@
 import { useState } from 'react';
-import { Layout, Menu, Button, Typography, theme, Space, Drawer } from 'antd';
+import { Layout, Menu, Button, Typography, theme, Space, Drawer, Avatar, Tag } from 'antd';
 import {
-  DashboardOutlined,
-  TeamOutlined,
-  CalendarOutlined,
-  UnorderedListOutlined,
-  ScanOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   MenuOutlined,
 } from '@ant-design/icons';
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { useIsMobile } from '@/hooks/useBreakpoint';
-import { ROUTES } from '@/utils/constants';
+import { getMenuItems } from '@/config/navigation';
 
 const { Header, Sider, Content } = Layout;
 
@@ -24,23 +19,17 @@ export function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isMobile = useIsMobile();
-  const { user, logout } = useAuth();
+  const { user, organization, role, isSuperAdmin, hasPermission, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const { token } = theme.useToken();
   const { t } = useTranslation();
 
-  const menuItems = [
-    { key: ROUTES.DASHBOARD, icon: <DashboardOutlined />, label: <Link to={ROUTES.DASHBOARD}>{t('nav.dashboard')}</Link> },
-    { key: ROUTES.USERS, icon: <TeamOutlined />, label: <Link to={ROUTES.USERS}>{t('nav.users')}</Link> },
-    { key: ROUTES.EVENTS, icon: <CalendarOutlined />, label: <Link to={ROUTES.EVENTS}>{t('nav.events')}</Link> },
-    { key: ROUTES.ATTENDANCE, icon: <UnorderedListOutlined />, label: <Link to={ROUTES.ATTENDANCE}>{t('nav.attendance')}</Link> },
-    { key: ROUTES.SCANNER, icon: <ScanOutlined />, label: <Link to={ROUTES.SCANNER}>{t('nav.scanner')}</Link> },
-  ];
+  const menuItems = getMenuItems(role, hasPermission, t);
 
   const handleLogout = async () => {
     await logout();
-    navigate(ROUTES.LOGIN);
+    navigate('/login');
   };
 
   const handleMenuClick = () => {
@@ -48,6 +37,10 @@ export function AdminLayout() {
       setDrawerOpen(false);
     }
   };
+
+  const headerTitle = isSuperAdmin
+    ? t('nav.platform.adminLabel')
+    : organization?.name ?? t('app.shortTitle');
 
   const siderLogo = (
     <div
@@ -60,8 +53,12 @@ export function AdminLayout() {
         fontWeight: 700,
         fontSize: collapsed && !isMobile ? 14 : 16,
         padding: '0 12px',
+        gap: 8,
       }}
     >
+      {!isSuperAdmin && organization?.logo && !collapsed && (
+        <Avatar src={organization.logo} size="small" />
+      )}
       {collapsed && !isMobile ? 'QR' : t('app.shortTitle')}
     </div>
   );
@@ -117,12 +114,25 @@ export function AdminLayout() {
             borderBottom: `1px solid ${token.colorBorderSecondary}`,
           }}
         >
-          <Button
-            type="text"
-            icon={isMobile ? <MenuOutlined /> : collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => (isMobile ? setDrawerOpen(true) : setCollapsed(!collapsed))}
-          />
-          <Space size={isMobile ? 'small' : 'middle'}>
+          <Space>
+            <Button
+              type="text"
+              icon={isMobile ? <MenuOutlined /> : collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={() => (isMobile ? setDrawerOpen(true) : setCollapsed(!collapsed))}
+            />
+            {!isMobile && (
+              <Space size="small">
+                {!isSuperAdmin && organization?.logo && (
+                  <Avatar src={organization.logo} size="small" />
+                )}
+                <Typography.Text strong>{headerTitle}</Typography.Text>
+              </Space>
+            )}
+          </Space>
+          <Space size={isMobile ? 'small' : 'middle'} wrap>
+            {role && !isMobile && (
+              <Tag color={isSuperAdmin ? 'purple' : 'blue'}>{t(`roles.${role}`)}</Tag>
+            )}
             <LanguageSwitcher size="small" compact={isMobile} />
             {!isMobile && <Typography.Text>{user?.name}</Typography.Text>}
             <Button

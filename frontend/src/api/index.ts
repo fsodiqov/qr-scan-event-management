@@ -1,6 +1,11 @@
 export { apiClient } from './client';
 export { authApi } from './auth.api';
 export { usersApi } from './users.api';
+export { participantsApi } from './participants.api';
 export { eventsApi } from './events.api';
 export { attendanceApi } from './attendance.api';
 export { dashboardApi } from './dashboard.api';
+export { organizationsApi } from './organizations.api';
+export { organizationUsersApi } from './organizationUsers.api';
+export { subscriptionsApi } from './subscriptions.api';
+export { platformDashboardApi } from './platformDashboard.api';

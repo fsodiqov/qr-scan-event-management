@@ -7,6 +7,7 @@ export interface IEvent extends Document {
   location: string;
   eventDate: Date;
   status: EventStatus;
+  organizationId: Types.ObjectId;
   createdBy: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -40,6 +41,11 @@ const eventSchema = new Schema<IEvent>(
       enum: Object.values(EVENT_STATUS),
       default: EVENT_STATUS.DRAFT,
     },
+    organizationId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Organization',
+      required: true,
+    },
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: 'User',
@@ -61,5 +67,8 @@ const eventSchema = new Schema<IEvent>(
 eventSchema.index({ eventDate: -1 });
 eventSchema.index({ status: 1 });
 eventSchema.index({ createdBy: 1 });
+eventSchema.index({ organizationId: 1 });
+eventSchema.index({ organizationId: 1, status: 1 });
+eventSchema.index({ organizationId: 1, eventDate: -1 });
 
 export const Event = mongoose.model<IEvent>('Event', eventSchema);

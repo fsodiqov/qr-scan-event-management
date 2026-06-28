@@ -1,7 +1,7 @@
 import { Types } from 'mongoose';
 import { connectDB, disconnectDB } from '../config/db';
-import { authService } from '../services/auth.service';
-import { ROLES } from '../constants/roles';
+import { subscriptionService } from '../services/subscription.service';
+import { ORG_ROLES } from '../constants/roles';
 import { EVENT_STATUS, EventStatus } from '../constants/eventStatus';
 import {
   ATTENDANCE_STATUS,
@@ -9,17 +9,25 @@ import {
   SCAN_RESULT,
   ScanResult,
 } from '../constants/attendanceStatus';
-import { User, IUser } from '../models/User';
+import { ORG_USER_STATUS } from '../constants/organizationUserStatus';
+import { SUBSCRIPTION_PLAN_CODE } from '../constants/subscriptionStatus';
+import { User } from '../models/User';
+import { Organization } from '../models/Organization';
+import { OrganizationUser } from '../models/OrganizationUser';
 import { Event, IEvent } from '../models/Event';
+import { Participant, IParticipant } from '../models/Participant';
 import { Attendance } from '../models/Attendance';
 import { ScanLog } from '../models/ScanLog';
+import { generateQrToken } from '../utils/qrToken';
+import { upsertSeedUser } from './seedUserUtils';
 
 const SHOULD_RESET = process.env.SEED_RESET === 'true';
 
-const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL ?? 'admin@example.com';
-const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? 'admin123456';
-const ADMIN_NAME = process.env.SEED_ADMIN_NAME ?? 'System Admin';
-const PARTICIPANT_PASSWORD = process.env.SEED_PARTICIPANT_PASSWORD ?? 'participant123';
+const OWNER_LOGIN = process.env.SEED_OWNER_LOGIN ?? process.env.SEED_OWNER_EMAIL ?? 'owner';
+const OWNER_PASSWORD = process.env.SEED_OWNER_PASSWORD ?? 'owner123456';
+const OWNER_NAME = process.env.SEED_OWNER_NAME ?? 'Organization Owner';
+const ORG_NAME = process.env.SEED_ORG_NAME ?? 'Demo Organization';
+const ORG_SLUG = process.env.SEED_ORG_SLUG ?? 'demo-org';
 
 const PARTICIPANT_COUNT = 40;
 
@@ -40,80 +48,83 @@ const LAST_NAMES = [
   'Toshov', 'Nazarova', 'Hamidov', 'Qurbanova', 'Ergashev',
 ];
 
-const ORGANIZATIONS = [
-  'Toshkent Davlat Universiteti',
-  'IT Park Uzbekistan',
-  'Mediapark',
-  'Uzum Market',
-  'Artel Electronics',
-  'Payme',
-  'Humans',
-  'Beeline Uzbekistan',
-  'TBC Bank',
-  'Aloqabank',
-  'Click',
-  'Kapitalbank',
-  'Ucell',
-  'MyTaxi',
-  'Korzinka',
-  'BI Group',
-  'EPAM Uzbekistan',
-  'Exadel',
-  'Ministry of Digital Technologies',
-  'Westminster International University',
-];
-
-function buildParticipants() {
+function buildParticipantData() {
   return Array.from({ length: PARTICIPANT_COUNT }, (_, index) => {
-    const suffix = String(index + 1).padStart(2, '0');
     return {
       name: `${FIRST_NAMES[index]} ${LAST_NAMES[index]}`,
       phone: `+99890${String(1110000 + index).slice(-7)}`,
-      organization: ORGANIZATIONS[index % ORGANIZATIONS.length],
     };
   });
 }
 
-async function ensureAdmin() {
-  let admin = await User.findOne({ email: ADMIN_EMAIL, role: ROLES.ADMIN });
-
-  if (!admin) {
-    admin = await authService.createAdmin({
-      name: ADMIN_NAME,
-      email: ADMIN_EMAIL,
-      password: ADMIN_PASSWORD,
+async function ensureOrganizationAndOwner() {
+  let subscription = await subscriptionService.getStarterPlan();
+  if (!subscription) {
+    subscription = await subscriptionService.create({
+      name: 'Starter Plan',
+      planCode: SUBSCRIPTION_PLAN_CODE.STARTER,
     });
-    console.log('Admin created');
-  } else {
-    console.log('Admin already exists, skipping');
   }
 
-  return admin;
+  let organization = await Organization.findOne({ slug: ORG_SLUG });
+  if (!organization) {
+    organization = await Organization.create({
+      name: ORG_NAME,
+      slug: ORG_SLUG,
+      subscriptionId: subscription._id,
+    });
+  }
+
+  const ownerResult = await upsertSeedUser({
+    name: OWNER_NAME,
+    login: OWNER_LOGIN,
+    password: OWNER_PASSWORD,
+    isSuperAdmin: false,
+  });
+  const owner = ownerResult.user;
+
+  const membership = await OrganizationUser.findOne({ userId: owner._id });
+  if (!membership) {
+    await OrganizationUser.create({
+      organizationId: organization._id,
+      userId: owner._id,
+      role: ORG_ROLES.OWNER,
+      status: ORG_USER_STATUS.ACTIVE,
+    });
+  }
+
+  return { organization, owner };
 }
 
-async function seedParticipants(): Promise<IUser[]> {
-  const participants = buildParticipants();
-  const created: IUser[] = [];
+async function seedParticipants(
+  organizationId: Types.ObjectId,
+  eventId: Types.ObjectId,
+): Promise<IParticipant[]> {
+  const data = buildParticipantData();
+  const created: IParticipant[] = [];
 
-  for (const data of participants) {
-    const existing = await User.findOne({ phone: data.phone });
+  for (const item of data) {
+    const existing = await Participant.findOne({
+      organizationId,
+      eventId,
+      phone: item.phone,
+    });
 
     if (existing) {
       created.push(existing);
       continue;
     }
 
-    const user = new User({
-      name: data.name,
-      phone: data.phone,
-      organization: data.organization,
-      role: ROLES.PARTICIPANT,
-      passwordHash: PARTICIPANT_PASSWORD,
+    const participant = await Participant.create({
+      organizationId,
+      eventId,
+      name: item.name,
+      phone: item.phone,
+      qrToken: generateQrToken(),
       isActive: true,
     });
 
-    await user.save();
-    created.push(user);
+    created.push(participant);
   }
 
   console.log(`Participants ready: ${created.length}`);
@@ -135,7 +146,10 @@ function minutesAgo(minutes: number): Date {
   return new Date(Date.now() - minutes * 60 * 1000);
 }
 
-async function seedEvents(adminId: Types.ObjectId): Promise<IEvent[]> {
+async function seedEvents(
+  organizationId: Types.ObjectId,
+  ownerId: Types.ObjectId,
+): Promise<IEvent[]> {
   const eventsData: Array<{
     title: string;
     description: string;
@@ -204,12 +218,13 @@ async function seedEvents(adminId: Types.ObjectId): Promise<IEvent[]> {
   const events: IEvent[] = [];
 
   for (const data of eventsData) {
-    let event = await Event.findOne({ title: data.title });
+    let event = await Event.findOne({ title: data.title, organizationId });
 
     if (!event) {
       event = await Event.create({
         ...data,
-        createdBy: adminId,
+        organizationId,
+        createdBy: ownerId,
       });
     }
 
@@ -229,62 +244,86 @@ function pickIndices(total: number, count: number, offset = 0): number[] {
 }
 
 async function upsertAttendance(
-  userId: Types.ObjectId,
+  participantId: Types.ObjectId,
   eventId: Types.ObjectId,
+  organizationId: Types.ObjectId,
   status: AttendanceStatus,
   checkInTime: Date,
   checkOutTime?: Date,
 ): Promise<void> {
   await Attendance.findOneAndUpdate(
-    { userId, eventId },
-    { userId, eventId, status, checkInTime, checkOutTime },
+    { participantId, eventId },
+    { participantId, eventId, organizationId, status, checkInTime, checkOutTime },
     { upsert: true, new: true, setDefaultsOnInsert: true },
   );
 }
 
-async function seedAttendance(
-  participants: IUser[],
-  events: IEvent[],
+async function seedAttendanceForEvent(
+  participants: IParticipant[],
+  event: IEvent,
+  organizationId: Types.ObjectId,
+  config: {
+    checkedIn: number;
+    checkedOut: number;
+    checkedOutOffset?: number;
+  },
 ): Promise<number> {
+  let count = 0;
+  const total = participants.length;
+
+  for (const index of pickIndices(total, config.checkedIn)) {
+    await upsertAttendance(
+      participants[index]._id,
+      event._id,
+      organizationId,
+      ATTENDANCE_STATUS.CHECKED_IN,
+      hoursAgo(0.5 + (index % 6) * 0.4),
+    );
+    count += 1;
+  }
+
+  for (const index of pickIndices(total, config.checkedOut, config.checkedOutOffset ?? 0)) {
+    await upsertAttendance(
+      participants[index]._id,
+      event._id,
+      organizationId,
+      ATTENDANCE_STATUS.CHECKED_OUT,
+      hoursAgo(4 + (index % 5)),
+      hoursAgo(0.3 + (index % 4) * 0.2),
+    );
+    count += 1;
+  }
+
+  return count;
+}
+
+async function seedAllAttendance(
+  participantsByEvent: Map<string, IParticipant[]>,
+  events: IEvent[],
+  organizationId: Types.ObjectId,
+): Promise<number> {
+  let count = 0;
   const todayEvent = events.find((e) => e.title === 'Yillik IT Konferensiyasi 2026');
   const demoDay = events.find((e) => e.title === 'Startup Demo Day');
   const securitySummit = events.find((e) => e.title === 'Cyber Security Summit');
   const closedEvents = events.filter((e) => e.status === EVENT_STATUS.CLOSED);
 
-  let count = 0;
-  const total = participants.length;
-
   if (todayEvent) {
-    const checkedInIndices = pickIndices(total, 22);
-    const checkedOutIndices = pickIndices(total, 12, 22);
-
-    for (const index of checkedInIndices) {
-      await upsertAttendance(
-        participants[index]._id,
-        todayEvent._id,
-        ATTENDANCE_STATUS.CHECKED_IN,
-        hoursAgo(0.5 + (index % 6) * 0.4),
-      );
-      count += 1;
-    }
-
-    for (const index of checkedOutIndices) {
-      await upsertAttendance(
-        participants[index]._id,
-        todayEvent._id,
-        ATTENDANCE_STATUS.CHECKED_OUT,
-        hoursAgo(4 + (index % 5)),
-        hoursAgo(0.3 + (index % 4) * 0.2),
-      );
-      count += 1;
-    }
+    const participants = participantsByEvent.get(todayEvent._id.toString()) ?? [];
+    count += await seedAttendanceForEvent(participants, todayEvent, organizationId, {
+      checkedIn: 22,
+      checkedOut: 12,
+      checkedOutOffset: 22,
+    });
   }
 
   if (demoDay) {
-    for (const index of pickIndices(total, 8, 5)) {
+    const participants = participantsByEvent.get(demoDay._id.toString()) ?? [];
+    for (const index of pickIndices(participants.length, 8, 5)) {
       await upsertAttendance(
         participants[index]._id,
         demoDay._id,
+        organizationId,
         ATTENDANCE_STATUS.CHECKED_IN,
         hoursAgo(0.2 + index * 0.05),
       );
@@ -293,10 +332,12 @@ async function seedAttendance(
   }
 
   if (securitySummit) {
-    for (const index of pickIndices(total, 6, 12)) {
+    const participants = participantsByEvent.get(securitySummit._id.toString()) ?? [];
+    for (const index of pickIndices(participants.length, 6, 12)) {
       await upsertAttendance(
         participants[index]._id,
         securitySummit._id,
+        organizationId,
         ATTENDANCE_STATUS.CHECKED_IN,
         hoursAgo(1 + index * 0.1),
       );
@@ -305,11 +346,13 @@ async function seedAttendance(
   }
 
   for (const closedEvent of closedEvents) {
+    const participants = participantsByEvent.get(closedEvent._id.toString()) ?? [];
     const participantCount = closedEvent.title === 'Digital Marketing Bootcamp' ? 28 : 20;
-    for (const index of pickIndices(total, participantCount, closedEvents.indexOf(closedEvent) * 3)) {
+    for (const index of pickIndices(participants.length, participantCount, closedEvents.indexOf(closedEvent) * 3)) {
       await upsertAttendance(
         participants[index]._id,
         closedEvent._id,
+        organizationId,
         ATTENDANCE_STATUS.CHECKED_OUT,
         hoursAgo(24 * 10 + index),
         hoursAgo(24 * 9 + index * 0.5),
@@ -324,23 +367,25 @@ async function seedAttendance(
 
 async function createScanLog(
   adminId: Types.ObjectId,
+  organizationId: Types.ObjectId,
   eventId: Types.ObjectId,
   result: ScanResult,
   scannedAt: Date,
-  userId?: Types.ObjectId,
+  participantId?: Types.ObjectId,
 ): Promise<boolean> {
   const exists = await ScanLog.findOne({
     eventId,
     result,
     scannedAt,
-    userId: userId ?? null,
+    participantId: participantId ?? null,
   });
 
   if (exists) return false;
 
   await ScanLog.create({
-    userId,
+    participantId,
     eventId,
+    organizationId,
     scannedBy: adminId,
     result,
     scannedAt,
@@ -351,8 +396,9 @@ async function createScanLog(
 }
 
 async function seedScanLogs(
-  participants: IUser[],
+  participantsByEvent: Map<string, IParticipant[]>,
   events: IEvent[],
+  organizationId: Types.ObjectId,
   adminId: Types.ObjectId,
 ): Promise<number> {
   const todayEvent = events.find((e) => e.title === 'Yillik IT Konferensiyasi 2026');
@@ -362,49 +408,52 @@ async function seedScanLogs(
   let count = 0;
 
   if (todayEvent) {
+    const participants = participantsByEvent.get(todayEvent._id.toString()) ?? [];
     for (let i = 0; i < 34; i += 1) {
-      const user = participants[i % participants.length];
+      const participant = participants[i % participants.length];
       const checkInAt = minutesAgo(180 - i * 4);
 
-      if (await createScanLog(adminId, todayEvent._id, SCAN_RESULT.CHECK_IN, checkInAt, user._id)) {
+      if (await createScanLog(adminId, organizationId, todayEvent._id, SCAN_RESULT.CHECK_IN, checkInAt, participant?._id)) {
         count += 1;
       }
 
-      if (i % 3 === 0) {
+      if (i % 3 === 0 && participant) {
         const checkOutAt = minutesAgo(90 - i * 2);
-        if (await createScanLog(adminId, todayEvent._id, SCAN_RESULT.CHECK_OUT, checkOutAt, user._id)) {
+        if (await createScanLog(adminId, organizationId, todayEvent._id, SCAN_RESULT.CHECK_OUT, checkOutAt, participant._id)) {
           count += 1;
         }
       }
     }
 
     for (let i = 0; i < 4; i += 1) {
-      if (await createScanLog(adminId, todayEvent._id, SCAN_RESULT.INVALID, minutesAgo(20 - i * 3))) {
+      if (await createScanLog(adminId, organizationId, todayEvent._id, SCAN_RESULT.INVALID, minutesAgo(20 - i * 3))) {
         count += 1;
       }
     }
 
     for (let i = 0; i < 3; i += 1) {
-      const user = participants[(i + 30) % participants.length];
-      if (await createScanLog(adminId, todayEvent._id, SCAN_RESULT.ALREADY_OUT, minutesAgo(15 - i * 4), user._id)) {
+      const participant = participants[(i + 30) % participants.length];
+      if (participant && await createScanLog(adminId, organizationId, todayEvent._id, SCAN_RESULT.ALREADY_OUT, minutesAgo(15 - i * 4), participant._id)) {
         count += 1;
       }
     }
   }
 
   if (demoDay) {
+    const participants = participantsByEvent.get(demoDay._id.toString()) ?? [];
     for (let i = 0; i < 10; i += 1) {
-      const user = participants[(i + 8) % participants.length];
-      if (await createScanLog(adminId, demoDay._id, SCAN_RESULT.CHECK_IN, minutesAgo(60 - i * 5), user._id)) {
+      const participant = participants[(i + 8) % participants.length];
+      if (participant && await createScanLog(adminId, organizationId, demoDay._id, SCAN_RESULT.CHECK_IN, minutesAgo(60 - i * 5), participant._id)) {
         count += 1;
       }
     }
   }
 
   if (securitySummit) {
+    const participants = participantsByEvent.get(securitySummit._id.toString()) ?? [];
     for (let i = 0; i < 8; i += 1) {
-      const user = participants[(i + 15) % participants.length];
-      if (await createScanLog(adminId, securitySummit._id, SCAN_RESULT.CHECK_IN, minutesAgo(120 - i * 8), user._id)) {
+      const participant = participants[(i + 15) % participants.length];
+      if (participant && await createScanLog(adminId, organizationId, securitySummit._id, SCAN_RESULT.CHECK_IN, minutesAgo(120 - i * 8), participant._id)) {
         count += 1;
       }
     }
@@ -414,35 +463,59 @@ async function seedScanLogs(
   return count;
 }
 
-async function resetCollections(): Promise<void> {
+async function resetCollections(organizationId: Types.ObjectId): Promise<void> {
   await Promise.all([
     Attendance.deleteMany({}),
     ScanLog.deleteMany({}),
-    Event.deleteMany({}),
-    User.deleteMany({ role: ROLES.PARTICIPANT }),
+    Participant.deleteMany({ organizationId }),
+    Event.deleteMany({ organizationId }),
   ]);
-  console.log('Mock collections cleared (participants, events, attendance, scan logs)');
+
+  // Drop legacy MVP indexes (userId-based) if they still exist
+  try {
+    await Attendance.collection.dropIndex('userId_1_eventId_1');
+  } catch {
+    // Index may not exist
+  }
+  try {
+    await ScanLog.collection.dropIndex('userId_1_scannedAt_-1');
+  } catch {
+    // Index may not exist
+  }
+
+  await Attendance.syncIndexes();
+  await ScanLog.syncIndexes();
+  await Participant.syncIndexes();
+  await Event.syncIndexes();
+
+  console.log('Mock collections cleared for organization');
 }
 
 async function seed(): Promise<void> {
   await connectDB();
 
+  const { organization, owner } = await ensureOrganizationAndOwner();
+
   if (SHOULD_RESET) {
-    await resetCollections();
+    await resetCollections(organization._id);
   }
 
-  const admin = await ensureAdmin();
-  const participants = await seedParticipants();
-  const events = await seedEvents(admin._id);
-  await seedAttendance(participants, events);
-  await seedScanLogs(participants, events, admin._id);
+  const events = await seedEvents(organization._id, owner._id);
 
-  console.log('\n--- Seed summary ---');
-  console.log(`Admin login: ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`);
-  console.log(`Participant password (all): ${PARTICIPANT_PASSWORD}`);
-  console.log(`Participants: ${participants.length}`);
+  const participantsByEvent = new Map<string, IParticipant[]>();
+  for (const event of events) {
+    const participants = await seedParticipants(organization._id, event._id);
+    participantsByEvent.set(event._id.toString(), participants);
+  }
+
+  await seedAllAttendance(participantsByEvent, events, organization._id);
+  await seedScanLogs(participantsByEvent, events, organization._id, owner._id);
+
+  console.log('\n--- Mock seed summary ---');
+  console.log(`Owner login: ${OWNER_LOGIN} / ${OWNER_PASSWORD}`);
+  console.log(`Organization: ${ORG_NAME}`);
   console.log(`Events: ${events.length}`);
-  console.log('Dashboard expects ~40 participants, ~50+ attendance rows, ~60+ scan logs');
+  console.log(`Participants per event: ${PARTICIPANT_COUNT}`);
 
   await disconnectDB();
 }

@@ -1,26 +1,32 @@
-import { IUser } from '../models/User';
-import { User } from '../models/User';
+import { IParticipant } from '../models/Participant';
+import { Participant } from '../models/Participant';
 import { NotFoundError } from '../utils/AppError';
 import { ERROR_CODES } from '../constants/errorCodes';
+import { AuthContext } from '../types';
+import { scopeToOrganization } from '../utils/tenantScope';
 
 export interface QrValidationResult {
-  user: IUser;
+  participant: IParticipant;
   isValid: true;
 }
 
 export class QrService {
-  async validateToken(token: string): Promise<IUser> {
-    const user = await User.findByQrToken(token);
+  async validateToken(auth: AuthContext, token: string): Promise<IParticipant> {
+    const participant = await Participant.findOne({
+      ...scopeToOrganization(auth, {}),
+      qrToken: token,
+      isActive: true,
+    });
 
-    if (!user) {
+    if (!participant) {
       throw new NotFoundError('Invalid QR token', ERROR_CODES.INVALID_QR_TOKEN);
     }
 
-    return user;
+    return participant;
   }
 
-  async validateTokenOrNull(token: string): Promise<IUser | null> {
-    return User.findByQrToken(token);
+  async validateTokenOrNull(token: string): Promise<IParticipant | null> {
+    return Participant.findByQrToken(token);
   }
 }
 

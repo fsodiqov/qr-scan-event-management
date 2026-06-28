@@ -44,16 +44,16 @@ export function ScanResultModal({
           extra={
             <div style={{ textAlign: 'left' }}>
               <Typography.Paragraph>
-                <strong>{t('common.name')}:</strong> {result.user.name}
+                <strong>{t('common.name')}:</strong> {result.participant.name}
               </Typography.Paragraph>
-              {result.user.phone && (
+              {result.participant.phone && (
                 <Typography.Paragraph>
-                  <strong>{t('common.phone')}:</strong> {result.user.phone}
+                  <strong>{t('common.phone')}:</strong> {result.participant.phone}
                 </Typography.Paragraph>
               )}
-              {result.user.organization && (
+              {result.participant.email && (
                 <Typography.Paragraph>
-                  <strong>{t('common.organization')}:</strong> {result.user.organization}
+                  <strong>{t('common.email')}:</strong> {result.participant.email}
                 </Typography.Paragraph>
               )}
               <Typography.Paragraph>
