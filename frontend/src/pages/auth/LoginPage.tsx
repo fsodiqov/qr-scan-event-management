@@ -12,8 +12,8 @@ interface LoginFormValues {
   password: string;
 }
 
-// TODO: remove before production — dev/test login defaults (see backend seed.ts)
-const DEV_LOGIN_DEFAULTS: LoginFormValues = {
+// Demo convenience — seed owner credentials (see delete.md / npm run seed)
+const DEMO_LOGIN_DEFAULTS: LoginFormValues = {
   login: 'owner',
   password: 'owner123456',
 };
@@ -66,7 +66,7 @@ export function LoginPage() {
         layout="vertical"
         onFinish={handleSubmit}
         requiredMark={false}
-        initialValues={import.meta.env.DEV ? DEV_LOGIN_DEFAULTS : undefined}
+        initialValues={DEMO_LOGIN_DEFAULTS}
       >
         <Form.Item
           label={t('common.login')}

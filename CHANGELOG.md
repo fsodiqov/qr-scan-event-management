@@ -5,6 +5,12 @@ Barcha muhim o'zgarishlar ushbu faylda qayd etiladi.
 Format [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ga asoslangan.
 Versiyalash [Semantic Versioning](https://semver.org/) (SemVer) bo'yicha yuritiladi.
 
+## [1.5.1] - 2026-07-15
+
+### Changed
+
+- Login page: default form `owner` / `owner123456` (ishlaydigan seed owner)
+
 ## [1.5.0] - 2026-07-15
 
 ### Added
