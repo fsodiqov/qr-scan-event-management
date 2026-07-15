@@ -4,6 +4,7 @@ import { authenticate } from '../middleware/auth';
 import { authorizePermission, authorizeSuperAdmin } from '../middleware/authorize';
 import { requireOrganization } from '../middleware/tenant';
 import { validate } from '../middleware/validate';
+import { uploadOrganizationLogo } from '../middleware/uploadLogo';
 import { PERMISSIONS } from '../constants/permissions';
 import {
   createOrganizationSchema,
@@ -35,6 +36,15 @@ router.put(
   authorizePermission(PERMISSIONS.ORG_SETTINGS),
   validate(updateMyOrganizationSchema),
   organizationController.updateMe.bind(organizationController),
+);
+
+router.post(
+  '/me/logo',
+  authenticate,
+  requireOrganization,
+  authorizePermission(PERMISSIONS.ORG_SETTINGS),
+  uploadOrganizationLogo,
+  organizationController.uploadMyLogo.bind(organizationController),
 );
 
 router.use(authenticate, authorizeSuperAdmin);

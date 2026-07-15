@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import mongoose from 'mongoose';
+import multer from 'multer';
 import { env } from '../config/env';
 import { AppError } from '../utils/AppError';
 import { sendError } from '../utils/apiResponse';
@@ -15,6 +16,15 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ): void {
+  if (err instanceof multer.MulterError) {
+    const message =
+      err.code === 'LIMIT_FILE_SIZE'
+        ? 'Image file is too large (max 20MB)'
+        : err.message;
+    sendError(res, 400, message, undefined, 'VALIDATION_FAILED');
+    return;
+  }
+
   if (err instanceof AppError) {
     sendError(res, err.statusCode, err.message, err.details, err.code);
     return;

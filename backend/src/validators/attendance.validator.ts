@@ -41,6 +41,8 @@ export const listAttendanceSchema = z.object({
   status: z
     .enum([ATTENDANCE_STATUS.CHECKED_IN, ATTENDANCE_STATUS.CHECKED_OUT])
     .optional(),
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
 });
 
 export const attendanceIdParamSchema = z.object({

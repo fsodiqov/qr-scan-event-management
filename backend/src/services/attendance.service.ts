@@ -277,6 +277,16 @@ export class AttendanceService {
       filter.status = query.status;
     }
 
+    if (query.from || query.to) {
+      filter.checkInTime = {};
+      if (query.from) {
+        filter.checkInTime.$gte = query.from;
+      }
+      if (query.to) {
+        filter.checkInTime.$lte = query.to;
+      }
+    }
+
     return filter;
   }
 

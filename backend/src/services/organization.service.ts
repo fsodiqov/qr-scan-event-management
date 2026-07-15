@@ -10,6 +10,7 @@ import {
   ConflictError,
   ForbiddenError,
   NotFoundError,
+  BadRequestError,
 } from '../utils/AppError';
 import { buildPaginationMeta, parsePagination } from '../utils/pagination';
 import {
@@ -22,6 +23,7 @@ import { PaginationMeta } from '../types';
 import { AuthContext } from '../types';
 import { requireOrganizationId } from '../utils/tenantScope';
 import { generateQrToken } from '../utils/qrToken';
+import { processLogoFromDataUriOrUrl, processLogoToDataUri } from '../utils/processLogo';
 
 export interface OrganizationListResult {
   organizations: IOrganization[];
@@ -81,7 +83,7 @@ export class OrganizationService {
     const organization = new Organization({
       name: input.name,
       slug,
-      logo: input.logo,
+      logo: input.logo ? await processLogoFromDataUriOrUrl(input.logo) : undefined,
       subscriptionId: input.subscriptionId
         ? new Types.ObjectId(input.subscriptionId)
         : undefined,
@@ -188,7 +190,11 @@ export class OrganizationService {
     }
 
     if (input.name) organization.name = input.name;
-    if (input.logo !== undefined) organization.logo = input.logo ?? undefined;
+    if (input.logo !== undefined) {
+      organization.logo = input.logo
+        ? await processLogoFromDataUriOrUrl(input.logo)
+        : undefined;
+    }
     if (input.status) organization.status = input.status;
 
     if (input.subscriptionId !== undefined) {
@@ -215,8 +221,24 @@ export class OrganizationService {
     const organization = await this.findById(organizationId);
 
     if (input.name) organization.name = input.name;
-    if (input.logo !== undefined) organization.logo = input.logo ?? undefined;
+    if (input.logo !== undefined) {
+      organization.logo = input.logo
+        ? await processLogoFromDataUriOrUrl(input.logo)
+        : undefined;
+    }
 
+    await organization.save();
+    return organization;
+  }
+
+  async uploadMyLogo(auth: AuthContext, file?: Express.Multer.File): Promise<IOrganization> {
+    if (!file?.buffer?.length) {
+      throw new BadRequestError('Logo file is required');
+    }
+
+    const organizationId = requireOrganizationId(auth);
+    const organization = await this.findById(organizationId);
+    organization.logo = await processLogoToDataUri(file.buffer);
     await organization.save();
     return organization;
   }

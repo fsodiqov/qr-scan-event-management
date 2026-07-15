@@ -53,6 +53,19 @@ export class AuthController {
       next(error);
     }
   }
+
+  async uploadMyPhoto(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const user = await authService.uploadMyPhoto(req.user!.sub, req.file);
+      sendSuccess({
+        res,
+        data: { user },
+        message: 'Profile photo updated successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const authController = new AuthController();

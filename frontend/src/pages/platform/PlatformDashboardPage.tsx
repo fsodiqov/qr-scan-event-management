@@ -11,6 +11,7 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { usePlatformDashboardStats } from '@/hooks/usePlatformDashboard';
+import { brand, semantic } from '@/theme/tokens';
 
 export function PlatformDashboardPage() {
   const { t } = useTranslation();
@@ -40,7 +41,7 @@ export function PlatformDashboardPage() {
             title={t('platformDashboard.activeOrganizations')}
             value={stats?.activeOrganizations ?? 0}
             icon={<BankOutlined />}
-            color="#52c41a"
+            color={semantic.success}
           />
         </Col>
         <Col xs={24} sm={12} lg={8}>
@@ -69,7 +70,7 @@ export function PlatformDashboardPage() {
             title={t('platformDashboard.totalAttendance')}
             value={stats?.totalAttendanceRecords ?? 0}
             icon={<LoginOutlined />}
-            color="#1677ff"
+            color={brand.primary}
           />
         </Col>
       </Row>

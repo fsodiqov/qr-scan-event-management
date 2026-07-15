@@ -10,6 +10,9 @@ const uzUZ: Locale = {
   Pagination: {
     ...enUS.Pagination!,
     items_per_page: '/ sahifa',
+    jump_to: 'O‘tish',
+    jump_to_confirm: 'tasdiqlash',
+    page: 'sahifa',
   },
   Table: {
     ...enUS.Table!,

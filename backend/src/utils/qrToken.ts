@@ -10,6 +10,10 @@ export const QR_CODE_OPTIONS = {
   errorCorrectionLevel: 'M' as const,
   margin: 2,
   width: 300,
+  color: {
+    dark: '#000000',
+    light: '#FFFFFF',
+  },
 };
 
 export function generateQrToken(): string {

@@ -26,6 +26,7 @@ import {
   useUpdateOrganizationMember,
 } from '@/hooks/useOrganizations';
 import { getApiErrorMessage } from '@/utils/helpers';
+import { userActiveColors } from '@/theme/statusColors';
 import type { OrganizationStatus, OrganizationUser, Role } from '@/types';
 
 interface EditMemberFormValues {
@@ -125,7 +126,7 @@ export function OrganizationDetailPage() {
       title: t('common.status'),
       key: 'status',
       render: (_, record) => (
-        <Tag color={record.isActive ? 'green' : 'default'}>
+        <Tag color={record.isActive ? userActiveColors.active : userActiveColors.inactive}>
           {record.isActive ? t('orgUsers.active') : t('orgUsers.inactive')}
         </Tag>
       ),

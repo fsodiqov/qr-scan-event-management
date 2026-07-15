@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(
     async (payload: LoginPayload): Promise<AuthProfile> => {
       const result = await authApi.login(payload);
-      storage.setToken(result.token);
+      storage.setToken(result.token, Boolean(payload.rememberMe));
       setHasToken(true);
 
       const authProfile: AuthProfile = {

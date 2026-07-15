@@ -10,12 +10,14 @@ import {
   Switch,
   Table,
   Tag,
+  Typography,
   message,
 } from 'antd';
 import { PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import type { ColumnsType } from 'antd/es/table';
 import { PageHeader } from '@/components/common/PageHeader';
+import { ExportCsvButton } from '@/components/common/ExportCsvButton';
 import {
   useCreateOrganizationUser,
   useDeleteOrganizationUser,
@@ -23,7 +25,11 @@ import {
   useUpdateOrganizationUser,
 } from '@/hooks/useOrganizationUsers';
 import { useIsMobile } from '@/hooks/useBreakpoint';
+import { fetchAllForExport, useCsvExport } from '@/hooks/useCsvExport';
 import { getApiErrorMessage } from '@/utils/helpers';
+import { tablePagination } from '@/utils/tablePagination';
+import { organizationUsersApi } from '@/api';
+import { userActiveColors } from '@/theme/statusColors';
 import type { OrganizationUser, StaffRole } from '@/types';
 
 interface MemberFormValues {
@@ -42,16 +48,49 @@ export function OrganizationUsersPage() {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<OrganizationUser | null>(null);
   const [createForm] = Form.useForm<MemberFormValues>();
   const [editForm] = Form.useForm<EditMemberFormValues>();
 
-  const params = useMemo(() => ({ page, limit: 10 }), [page]);
+  const params = useMemo(() => ({ page, limit: pageSize }), [page, pageSize]);
   const { data, isLoading } = useOrganizationUsers(params);
   const createMember = useCreateOrganizationUser();
   const updateMember = useUpdateOrganizationUser();
   const deleteMember = useDeleteOrganizationUser();
+  const { exporting, runExport } = useCsvExport();
+
+  const handleExportCsv = () => {
+    void runExport(async () => {
+      const members = await fetchAllForExport(async (exportPage, limit) => {
+        const result = await organizationUsersApi.list({
+          page: exportPage,
+          limit,
+        });
+        return {
+          items: result.members,
+          total: result.meta?.total ?? result.members.length,
+        };
+      });
+
+      return {
+        filenamePrefix: 'team-members',
+        headers: [
+          t('common.name'),
+          t('common.login'),
+          t('orgUsers.role'),
+          t('common.status'),
+        ],
+        rows: members.map((member) => [
+          member.name,
+          member.login ?? '',
+          t(`roles.${member.role}`),
+          member.isActive ? t('orgUsers.active') : t('orgUsers.inactive'),
+        ]),
+      };
+    });
+  };
 
   const openEditModal = (member: OrganizationUser) => {
     setEditingMember(member);
@@ -120,19 +159,38 @@ export function OrganizationUsersPage() {
   };
 
   const columns: ColumnsType<OrganizationUser> = [
-    { title: t('common.name'), dataIndex: 'name', key: 'name' },
-    { title: t('common.login'), dataIndex: 'login', key: 'login' },
+    {
+      title: t('common.name'),
+      dataIndex: 'name',
+      key: 'name',
+      render: (value: string) => (
+        <Typography.Text className="team-cell-primary">{value}</Typography.Text>
+      ),
+    },
+    {
+      title: t('common.login'),
+      dataIndex: 'login',
+      key: 'login',
+      render: (value: string) => (
+        <Typography.Text className="team-cell-secondary">{value}</Typography.Text>
+      ),
+    },
     {
       title: t('orgUsers.role'),
       dataIndex: 'role',
       key: 'role',
-      render: (role: string) => <Tag>{t(`roles.${role}`)}</Tag>,
+      render: (role: string) => (
+        <Tag className="status-badge team-role-badge">{t(`roles.${role}`)}</Tag>
+      ),
     },
     {
       title: t('common.status'),
       key: 'status',
       render: (_, record) => (
-        <Tag color={record.isActive ? 'green' : 'default'}>
+        <Tag
+          className="status-badge"
+          color={record.isActive ? userActiveColors.active : userActiveColors.inactive}
+        >
           {record.isActive ? t('orgUsers.active') : t('orgUsers.inactive')}
         </Tag>
       ),
@@ -142,51 +200,65 @@ export function OrganizationUsersPage() {
       key: 'actions',
       render: (_, record) =>
         record.role !== 'owner' ? (
-          <Space>
+          <div className="team-actions">
             <Button
               size="small"
+              type="text"
+              className="team-action-btn team-action-edit"
               icon={<EditOutlined />}
               onClick={() => openEditModal(record)}
               aria-label={t('common.edit')}
             />
-            <Popconfirm title={t('orgUsers.removeConfirm')} onConfirm={() => handleDelete(record.id)}>
-              <Button size="small" danger icon={<DeleteOutlined />} />
+            <Popconfirm
+              title={t('orgUsers.removeConfirm')}
+              onConfirm={() => handleDelete(record.id)}
+            >
+              <Button
+                size="small"
+                type="text"
+                danger
+                className="team-action-btn team-action-delete"
+                icon={<DeleteOutlined />}
+                aria-label={t('common.delete')}
+              />
             </Popconfirm>
-          </Space>
+          </div>
         ) : null,
     },
   ];
 
   return (
-    <div>
+    <div className="team-page">
       <PageHeader
         title={t('orgUsers.title')}
         subtitle={t('orgUsers.subtitle')}
         extra={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setCreateModalOpen(true)}
-            block={isMobile}
-          >
-            {t('orgUsers.add')}
-          </Button>
+          <div className="page-header-actions">
+            <ExportCsvButton onClick={handleExportCsv} loading={exporting} block={isMobile} />
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setCreateModalOpen(true)}
+              block={isMobile}
+              className="team-header-cta"
+            >
+              {t('orgUsers.add')}
+            </Button>
+          </div>
         }
       />
 
       <Table
+        className="team-table"
         rowKey="id"
         loading={isLoading}
         columns={columns}
         dataSource={data?.members ?? []}
         scroll={{ x: 'max-content' }}
-        pagination={{
-          current: page,
-          pageSize: 10,
-          total: data?.meta?.total ?? 0,
-          onChange: setPage,
-          showSizeChanger: false,
-        }}
+        pagination={tablePagination(page, pageSize, data?.meta?.total ?? 0, (nextPage, nextSize) => {
+          setPage(nextSize !== pageSize ? 1 : nextPage);
+          setPageSize(nextSize);
+        })}
       />
 
       <Modal

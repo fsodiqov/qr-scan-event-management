@@ -71,6 +71,18 @@ export function useUpdateMyOrganization() {
   });
 }
 
+export function useUploadMyOrganizationLogo() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => organizationsApi.uploadMyLogo(file),
+    onSuccess: (organization) => {
+      queryClient.setQueryData(queryKeys.organizations.me, organization);
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
+    },
+  });
+}
+
 export function useDeleteOrganization() {
   const queryClient = useQueryClient();
 

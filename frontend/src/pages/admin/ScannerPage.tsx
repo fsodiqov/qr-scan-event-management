@@ -1,9 +1,10 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Button, Card, Input, Select, Space, Typography, message } from 'antd';
+import { ScanOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/common/PageHeader';
 import { ScanResultModal } from '@/components/attendance/ScanResultModal';
-import { QRScanner } from '@/components/qr/QRScanner';
+import { QRScanner, type ScannerFeedback } from '@/components/qr/QRScanner';
 import { useScanQr } from '@/hooks/useAttendance';
 import { useEvents } from '@/hooks/useEvents';
 import { extractQrToken, getApiErrorMessage, translateApiMessage } from '@/utils/helpers';
@@ -18,12 +19,42 @@ export function ScannerPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResponse | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<ScannerFeedback>(null);
   const processingRef = useRef(false);
+  const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: eventsData } = useEvents({ status: 'active', limit: 100 });
   const scanQr = useScanQr();
 
   const activeEvents = eventsData?.events ?? [];
+
+  useEffect(() => {
+    if (activeEvents.length === 1) {
+      const onlyId = activeEvents[0]._id;
+      setEventId((current) => (current === onlyId ? current : onlyId));
+      return;
+    }
+
+    if (eventId && !activeEvents.some((event) => event._id === eventId)) {
+      setEventId(undefined);
+    }
+  }, [activeEvents, eventId]);
+
+  useEffect(() => {
+    return () => {
+      if (feedbackTimerRef.current) {
+        clearTimeout(feedbackTimerRef.current);
+      }
+    };
+  }, []);
+
+  const flashFeedback = (next: ScannerFeedback) => {
+    if (feedbackTimerRef.current) {
+      clearTimeout(feedbackTimerRef.current);
+    }
+    setFeedback(next);
+    feedbackTimerRef.current = setTimeout(() => setFeedback(null), 2800);
+  };
 
   const processScan = async (token: string) => {
     if (!eventId) {
@@ -41,6 +72,7 @@ export function ScannerPage() {
     try {
       const result = await scanQr.mutateAsync({ qrToken: token, eventId });
       setScanResult(result);
+      flashFeedback(result.result === 'already_out' ? 'duplicate' : 'success');
     } catch (error) {
       const axiosError = error as AxiosError<ApiErrorResponse>;
       const details = axiosError.response?.data?.details as
@@ -66,8 +98,10 @@ export function ScannerPage() {
           participant: details.participant,
           attendance: details.attendance,
         });
+        flashFeedback('duplicate');
       } else {
         setScanError(getApiErrorMessage(error, t('scanner.scanFailed')));
+        flashFeedback('invalid');
       }
     } finally {
       processingRef.current = false;
@@ -78,34 +112,34 @@ export function ScannerPage() {
     const token = extractQrToken(manualToken);
     if (!token) {
       message.error(t('scanner.invalidToken'));
+      flashFeedback('invalid');
       return;
     }
     void processScan(token);
   };
 
   return (
-    <div>
+    <div className="scanner-page">
       <PageHeader
         title={t('scanner.title')}
         subtitle={t('scanner.subtitle')}
       />
 
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        <Card>
-          <Space direction="vertical" style={{ width: '100%' }} size="middle">
-            <div>
-              <Typography.Text strong>{t('scanner.selectEvent')}</Typography.Text>
-              <Select
-                style={{ width: '100%', marginTop: 8 }}
-                placeholder={t('scanner.chooseEvent')}
-                value={eventId}
-                onChange={setEventId}
-                options={activeEvents.map((event) => ({
-                  value: event._id,
-                  label: event.title,
-                }))}
-              />
-            </div>
+      <Space direction="vertical" size={24} style={{ width: '100%' }}>
+        <Card className="scanner-section-card">
+          <Space direction="vertical" style={{ width: '100%' }} size={12}>
+            <Typography.Text strong>{t('scanner.selectEvent')}</Typography.Text>
+            <Select
+              style={{ width: '100%' }}
+              placeholder={t('scanner.chooseEvent')}
+              value={eventId}
+              onChange={setEventId}
+              options={activeEvents.map((event) => ({
+                value: event._id,
+                label: event.title,
+              }))}
+              aria-label={t('scanner.selectEvent')}
+            />
 
             {activeEvents.length === 0 && (
               <Alert
@@ -117,20 +151,32 @@ export function ScannerPage() {
           </Space>
         </Card>
 
-        <QRScanner onScan={processScan} disabled={!eventId || scanQr.isPending} />
+        <QRScanner
+          onScan={processScan}
+          disabled={!eventId || scanQr.isPending}
+          feedback={feedback}
+        />
 
-        <Card title={t('scanner.manualEntry')}>
-          <Space.Compact style={{ width: '100%' }}>
+        <Card className="scanner-section-card" title={t('scanner.manualEntry')}>
+          <div className="scanner-manual-entry">
             <Input
+              size="large"
               placeholder={t('scanner.tokenPlaceholder')}
               value={manualToken}
               onChange={(e) => setManualToken(e.target.value)}
               onPressEnter={handleManualScan}
+              aria-label={t('scanner.manualEntry')}
             />
-            <Button type="primary" onClick={handleManualScan}>
+            <Button
+              type="primary"
+              size="large"
+              icon={<ScanOutlined />}
+              onClick={handleManualScan}
+              disabled={!eventId || scanQr.isPending}
+            >
               {t('common.scan')}
             </Button>
-          </Space.Compact>
+          </div>
         </Card>
       </Space>
 

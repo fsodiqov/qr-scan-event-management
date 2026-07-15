@@ -44,7 +44,7 @@ const userSchema = new Schema<IUser>(
     photoUrl: {
       type: String,
       trim: true,
-      maxlength: 500,
+      maxlength: 200000,
     },
     isSuperAdmin: {
       type: Boolean,

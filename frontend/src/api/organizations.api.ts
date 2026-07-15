@@ -58,6 +58,16 @@ export const organizationsApi = {
     return data.data!;
   },
 
+  async uploadMyLogo(file: File): Promise<Organization> {
+    const formData = new FormData();
+    formData.append('logo', file);
+    const { data } = await apiClient.post<ApiResponse<Organization>>(
+      '/organizations/me/logo',
+      formData,
+    );
+    return data.data!;
+  },
+
   async listMembers(
     organizationId: string,
     params?: ListOrganizationUsersParams,

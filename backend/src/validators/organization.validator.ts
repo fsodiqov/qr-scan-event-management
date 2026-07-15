@@ -4,6 +4,20 @@ import { loginFieldSchema } from './loginField';
 
 const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+/** Public http(s) URL or already-processed (small) data-URI logo. */
+const organizationLogoSchema = z
+  .string()
+  .max(200_000)
+  .refine((value) => {
+    if (value.startsWith('data:image/')) return true;
+    try {
+      const parsed = new URL(value);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }, { message: 'Logo must be a valid image URL or image data' });
+
 export const createOrganizationOwnerSchema = z.object({
   name: z.string().min(2).max(120),
   login: loginFieldSchema,
@@ -14,7 +28,7 @@ export const createOrganizationOwnerSchema = z.object({
 export const createOrganizationSchema = z.object({
   name: z.string().min(2).max(200),
   slug: z.string().min(2).max(100).regex(slugRegex, 'Invalid slug format').optional(),
-  logo: z.string().url().max(500).optional(),
+  logo: organizationLogoSchema.optional(),
   subscriptionId: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid subscription ID').optional(),
   owner: createOrganizationOwnerSchema,
 });
@@ -23,7 +37,7 @@ export const updateOrganizationSchema = z
   .object({
     name: z.string().min(2).max(200).optional(),
     slug: z.string().min(2).max(100).regex(slugRegex, 'Invalid slug format').optional(),
-    logo: z.string().url().max(500).optional().nullable(),
+    logo: organizationLogoSchema.optional().nullable(),
     subscriptionId: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid subscription ID').optional().nullable(),
     status: z.enum([ORGANIZATION_STATUS.ACTIVE, ORGANIZATION_STATUS.SUSPENDED]).optional(),
   })
@@ -34,7 +48,7 @@ export const updateOrganizationSchema = z
 export const updateMyOrganizationSchema = z
   .object({
     name: z.string().min(2).max(200).optional(),
-    logo: z.string().url().max(500).optional().nullable(),
+    logo: organizationLogoSchema.optional().nullable(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'At least one field is required',

@@ -4,6 +4,7 @@ import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { loginSchema, updateProfileSchema } from '../validators/auth.validator';
 import { loginRateLimiter } from '../middleware/rateLimiter';
+import { uploadUserPhoto } from '../middleware/uploadLogo';
 
 const router = Router();
 
@@ -23,6 +24,13 @@ router.patch(
   authenticate,
   validate(updateProfileSchema),
   authController.updateMe.bind(authController),
+);
+
+router.post(
+  '/me/photo',
+  authenticate,
+  uploadUserPhoto,
+  authController.uploadMyPhoto.bind(authController),
 );
 
 export default router;

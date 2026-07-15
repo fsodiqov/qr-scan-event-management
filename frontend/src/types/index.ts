@@ -149,6 +149,42 @@ export interface DashboardStats {
   checkedIn: number;
   checkedOut: number;
   currentlyInside: number;
+  activeEvents: number;
+  scansToday: number;
+  invalidScansToday: number;
+  checkInRate: number;
+}
+
+export interface ReportTrendPoint {
+  date: string;
+  scans: number;
+  checkIns: number;
+  checkOuts: number;
+  invalid: number;
+}
+
+export interface ReportResultBreakdown {
+  check_in: number;
+  check_out: number;
+  already_out: number;
+  invalid: number;
+}
+
+export interface DashboardReport {
+  from: string;
+  to: string;
+  stats: DashboardStats;
+  trend: ReportTrendPoint[];
+  byResult: ReportResultBreakdown;
+}
+
+export type ReportPeriod = 'day' | 'week' | 'month' | 'custom';
+
+export interface DashboardReportParams {
+  eventId?: string;
+  from?: string;
+  to?: string;
+  period?: ReportPeriod;
 }
 
 export interface PlatformDashboardStats {
@@ -180,6 +216,7 @@ export interface QrCodeData {
 export interface LoginPayload {
   login: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface LoginResponse {
@@ -194,6 +231,7 @@ export interface UpdateProfilePayload {
   login?: string;
   currentPassword?: string;
   newPassword?: string;
+  photoUrl?: string | null;
 }
 
 export interface CreateStaffPayload {
@@ -385,6 +423,8 @@ export interface ListAttendanceParams {
   eventId?: string;
   participantId?: string;
   status?: AttendanceStatus;
+  from?: string;
+  to?: string;
 }
 
 export interface ListOrganizationsParams {

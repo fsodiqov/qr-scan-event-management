@@ -1,15 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Button, Card, Space } from 'antd';
+import { Alert, Button, Card, Space, Typography } from 'antd';
+import { CameraOutlined, StopOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { Html5Qrcode, type CameraDevice } from 'html5-qrcode';
 import { extractQrToken } from '@/utils/helpers';
 
+export type ScannerFeedback = 'success' | 'duplicate' | 'invalid' | null;
+
 interface QRScannerProps {
   onScan: (token: string) => void;
   disabled?: boolean;
+  feedback?: ScannerFeedback;
 }
 
 const SCANNER_ID = 'qr-scanner-region';
+
+type UiStatus = 'ready' | 'scanning' | 'success' | 'duplicate' | 'invalid';
 
 function getQrBoxSize(): number {
   const viewportMin = Math.min(window.innerWidth, window.innerHeight);
@@ -28,17 +34,28 @@ function pickCameraId(cameras: CameraDevice[]): string | { facingMode: string } 
   return { facingMode: 'environment' };
 }
 
-export function QRScanner({ onScan, disabled }: QRScannerProps) {
+export function QRScanner({ onScan, disabled, feedback = null }: QRScannerProps) {
   const { t } = useTranslation();
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const uiStatus: UiStatus = feedback
+    ?? (isRunning ? 'scanning' : 'ready');
+
+  const statusLabel = {
+    ready: t('scanner.statusReady'),
+    scanning: t('scanner.statusScanning'),
+    success: t('scanner.statusSuccess'),
+    duplicate: t('scanner.statusDuplicate'),
+    invalid: t('scanner.statusInvalid'),
+  }[uiStatus];
+
   const stopScanner = async () => {
     if (scannerRef.current?.isScanning) {
       await scannerRef.current.stop();
-      scannerRef.current.clear();
     }
+    scannerRef.current?.clear();
     scannerRef.current = null;
     setIsRunning(false);
   };
@@ -125,30 +142,68 @@ export function QRScanner({ onScan, disabled }: QRScannerProps) {
   }, []);
 
   return (
-    <Card>
-      <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+    <Card className="qr-scanner-card">
+      <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <div
-          id={SCANNER_ID}
-          style={{
-            width: '100%',
-            minHeight: 300,
-            overflow: 'hidden',
-            borderRadius: 8,
-            background: '#000',
-          }}
-        />
+          className={`qr-scanner-status qr-scanner-status--${uiStatus}`}
+          role="status"
+          aria-live="polite"
+        >
+          <span className="qr-scanner-status-dot" aria-hidden />
+          <Typography.Text className="qr-scanner-status-label">{statusLabel}</Typography.Text>
+        </div>
+
+        <div className={`qr-scanner-viewport${isRunning ? ' is-running' : ''}`}>
+          <div id={SCANNER_ID} className="qr-scanner-frame" />
+
+          {!isRunning && (
+            <div className="qr-scanner-idle" aria-hidden={!isRunning}>
+              <CameraOutlined className="qr-scanner-idle-icon" />
+              <Typography.Text className="qr-scanner-idle-text">
+                {t('scanner.cameraIdleHint')}
+              </Typography.Text>
+            </div>
+          )}
+
+          <div className="qr-scanner-overlay" aria-hidden>
+            <div className="qr-scanner-reticle">
+              <span className="qr-scanner-corner qr-scanner-corner--tl" />
+              <span className="qr-scanner-corner qr-scanner-corner--tr" />
+              <span className="qr-scanner-corner qr-scanner-corner--bl" />
+              <span className="qr-scanner-corner qr-scanner-corner--br" />
+              {isRunning && <span className="qr-scanner-scanline" />}
+            </div>
+          </div>
+        </div>
+
         {error && <Alert type="error" message={error} showIcon />}
-        <Space>
+
+        <div className="qr-scanner-actions">
           {!isRunning ? (
-            <Button type="primary" onClick={startScanner} disabled={disabled}>
+            <Button
+              type="primary"
+              size="large"
+              icon={<CameraOutlined />}
+              onClick={startScanner}
+              disabled={disabled}
+              className="qr-scanner-cta"
+              block
+            >
               {t('scanner.startCamera')}
             </Button>
           ) : (
-            <Button onClick={stopScanner} disabled={disabled}>
+            <Button
+              size="large"
+              icon={<StopOutlined />}
+              onClick={stopScanner}
+              disabled={disabled}
+              className="qr-scanner-stop"
+              block
+            >
               {t('scanner.stopCamera')}
             </Button>
           )}
-        </Space>
+        </div>
       </Space>
     </Card>
   );

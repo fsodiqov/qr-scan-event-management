@@ -23,4 +23,14 @@ export const authApi = {
     const { data } = await apiClient.patch<ApiResponse<{ user: AuthUser }>>('/auth/me', payload);
     return data.data!.user;
   },
+
+  async uploadMyPhoto(file: File): Promise<AuthUser> {
+    const formData = new FormData();
+    formData.append('photo', file);
+    const { data } = await apiClient.post<ApiResponse<{ user: AuthUser }>>(
+      '/auth/me/photo',
+      formData,
+    );
+    return data.data!.user;
+  },
 };

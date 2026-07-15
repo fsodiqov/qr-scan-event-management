@@ -5,6 +5,25 @@ Barcha muhim o'zgarishlar ushbu faylda qayd etiladi.
 Format [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ga asoslangan.
 Versiyalash [Semantic Versioning](https://semver.org/) (SemVer) bo'yicha yuritiladi.
 
+## [1.6.0] - 2026-07-16
+
+### Added
+
+- Light/Dark theme (ThemeToggle, ThemeContext, design tokens)
+- Organization logo va user profile photo upload (multer + sharp, WebP optimizatsiya)
+- CSV export — attendance, reports va jadval sahifalari uchun
+- Reports: period filter, trend/breakdown analytics va CSV yuklash
+- Dashboard: check-in rate, active events, scans/invalid scans, quick actions
+- Login: "Remember me" (`JWT_REMEMBER_EXPIRES_IN`, default 30d)
+- ScanResultTag va scanner UX holatlari (ready/scanning/success/duplicate/invalid)
+- Shared table pagination helper va status color theme
+
+### Changed
+
+- Admin/Auth layout, StatCard, PageHeader va global CSS redesign
+- Dashboard recent activity va i18n (en/uz/ru/ko) yangilandi
+- Account va Organization settings UI (logo/photo preview)
+
 ## [1.5.1] - 2026-07-15
 
 ### Changed

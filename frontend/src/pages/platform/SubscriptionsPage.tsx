@@ -6,6 +6,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { PageHeader } from '@/components/common/PageHeader';
 import { useCreateSubscription, useSubscriptions } from '@/hooks/useSubscriptions';
 import { getApiErrorMessage } from '@/utils/helpers';
+import { subscriptionStatusColors } from '@/theme/statusColors';
 import type { Subscription, SubscriptionStatus } from '@/types';
 
 interface SubFormValues {
@@ -41,7 +42,13 @@ export function SubscriptionsPage() {
       dataIndex: 'status',
       key: 'status',
       render: (status: SubscriptionStatus) => (
-        <Tag color={status === 'active' ? 'green' : 'default'}>
+        <Tag
+          color={
+            status === 'active'
+              ? subscriptionStatusColors.active
+              : subscriptionStatusColors.inactive
+          }
+        >
           {t(`subscriptions.status.${status}`)}
         </Tag>
       ),

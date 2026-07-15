@@ -16,14 +16,19 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { ColumnsType } from 'antd/es/table';
 import { PageHeader } from '@/components/common/PageHeader';
+import { ExportCsvButton } from '@/components/common/ExportCsvButton';
 import {
   useCreateOrganization,
   useOrganizations,
 } from '@/hooks/useOrganizations';
 import { useSubscriptions } from '@/hooks/useSubscriptions';
 import { useIsMobile } from '@/hooks/useBreakpoint';
+import { fetchAllForExport, useCsvExport } from '@/hooks/useCsvExport';
 import { ROUTES } from '@/utils/constants';
 import { getApiErrorMessage, getEntityId } from '@/utils/helpers';
+import { tablePagination } from '@/utils/tablePagination';
+import { organizationsApi } from '@/api';
+import { orgStatusColors } from '@/theme/statusColors';
 import type { Organization, OrganizationStatus } from '@/types';
 
 interface OrgFormValues {
@@ -41,13 +46,44 @@ export function OrganizationsPage() {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [modalOpen, setModalOpen] = useState(false);
   const [form] = Form.useForm<OrgFormValues>();
 
-  const params = useMemo(() => ({ page, limit: 10 }), [page]);
+  const params = useMemo(() => ({ page, limit: pageSize }), [page, pageSize]);
   const { data, isLoading } = useOrganizations(params);
   const { data: subsData } = useSubscriptions({ limit: 50 });
   const createOrg = useCreateOrganization();
+  const { exporting, runExport } = useCsvExport();
+
+  const handleExportCsv = () => {
+    void runExport(async () => {
+      const organizations = await fetchAllForExport(async (exportPage, limit) => {
+        const result = await organizationsApi.list({
+          page: exportPage,
+          limit,
+        });
+        return {
+          items: result.organizations,
+          total: result.meta?.total ?? result.organizations.length,
+        };
+      });
+
+      return {
+        filenamePrefix: 'organizations',
+        headers: [
+          t('common.name'),
+          t('organizations.slug'),
+          t('common.status'),
+        ],
+        rows: organizations.map((org) => [
+          org.name,
+          org.slug,
+          t(`organizations.status.${org.status}`),
+        ]),
+      };
+    });
+  };
 
   const showOwnerCredentials = (login: string, password: string) => {
     Modal.success({
@@ -103,7 +139,7 @@ export function OrganizationsPage() {
       dataIndex: 'status',
       key: 'status',
       render: (status: OrganizationStatus) => (
-        <Tag color={status === 'active' ? 'green' : 'red'}>
+        <Tag color={status === 'active' ? orgStatusColors.active : orgStatusColors.inactive}>
           {t(`organizations.status.${status}`)}
         </Tag>
       ),
@@ -127,9 +163,12 @@ export function OrganizationsPage() {
         title={t('organizations.title')}
         subtitle={t('organizations.subtitle')}
         extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)} block={isMobile}>
-            {t('organizations.add')}
-          </Button>
+          <div className="page-header-actions">
+            <ExportCsvButton onClick={handleExportCsv} loading={exporting} block={isMobile} />
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)} block={isMobile}>
+              {t('organizations.add')}
+            </Button>
+          </div>
         }
       />
 
@@ -139,13 +178,10 @@ export function OrganizationsPage() {
         columns={columns}
         dataSource={data?.organizations ?? []}
         scroll={{ x: 'max-content' }}
-        pagination={{
-          current: page,
-          pageSize: 10,
-          total: data?.meta?.total ?? 0,
-          onChange: setPage,
-          showSizeChanger: false,
-        }}
+        pagination={tablePagination(page, pageSize, data?.meta?.total ?? 0, (nextPage, nextSize) => {
+          setPage(nextSize !== pageSize ? 1 : nextPage);
+          setPageSize(nextSize);
+        })}
       />
 
       <Modal

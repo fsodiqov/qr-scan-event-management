@@ -12,6 +12,11 @@ import {
   ConflictError,
 } from '../utils/AppError';
 import { LoginInput, UpdateProfileInput } from '../validators/auth.validator';
+import { env } from '../config/env';
+import {
+  processLogoFromDataUriOrUrl,
+  processLogoToDataUri,
+} from '../utils/processLogo';
 
 export interface AuthUserInfo {
   id: string;
@@ -37,7 +42,8 @@ export interface AuthResult {
 
 export class AuthService {
   async login(input: LoginInput): Promise<AuthResult> {
-    const { login, password } = input;
+    const { login, password, rememberMe } = input;
+    const expiresIn = rememberMe ? env.JWT_REMEMBER_EXPIRES_IN : env.JWT_EXPIRES_IN;
 
     const user = await User.findOne({ login: login.trim() }).select('+passwordHash');
 
@@ -52,12 +58,15 @@ export class AuthService {
     }
 
     if (user.isSuperAdmin) {
-      const token = signToken({
-        sub: user._id.toString(),
-        role: PLATFORM_ROLES.SUPER_ADMIN,
-        login: user.login,
-        phone: user.phone,
-      });
+      const token = signToken(
+        {
+          sub: user._id.toString(),
+          role: PLATFORM_ROLES.SUPER_ADMIN,
+          login: user.login,
+          phone: user.phone,
+        },
+        expiresIn,
+      );
 
       return {
         token,
@@ -84,13 +93,16 @@ export class AuthService {
       throw new ForbiddenError('Organization not found', ERROR_CODES.ORGANIZATION_NOT_FOUND);
     }
 
-    const token = signToken({
-      sub: user._id.toString(),
-      organizationId: organization._id.toString(),
-      role: orgUser.role,
-      login: user.login,
-      phone: user.phone,
-    });
+    const token = signToken(
+      {
+        sub: user._id.toString(),
+        organizationId: organization._id.toString(),
+        role: orgUser.role,
+        login: user.login,
+        phone: user.phone,
+      },
+      expiresIn,
+    );
 
     return {
       token,
@@ -202,6 +214,28 @@ export class AuthService {
       user.passwordHash = input.newPassword;
     }
 
+    if (input.photoUrl !== undefined) {
+      user.photoUrl = input.photoUrl
+        ? await processLogoFromDataUriOrUrl(input.photoUrl)
+        : undefined;
+    }
+
+    await user.save();
+    return this.formatUser(user);
+  }
+
+  async uploadMyPhoto(userId: string, file?: Express.Multer.File): Promise<AuthUserInfo> {
+    if (!file?.buffer?.length) {
+      throw new BadRequestError('Photo file is required');
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user || !user.isActive) {
+      throw new UnauthorizedError('User not found or inactive', ERROR_CODES.USER_NOT_FOUND_OR_INACTIVE);
+    }
+
+    user.photoUrl = await processLogoToDataUri(file.buffer);
     await user.save();
     return this.formatUser(user);
   }

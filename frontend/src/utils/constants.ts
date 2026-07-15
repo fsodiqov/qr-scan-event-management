@@ -1,4 +1,5 @@
 export const TOKEN_KEY = 'qr_event_token';
+export const THEME_PREFERENCE_KEY = 'qr_event_theme';
 
 export const ROUTES = {
   LOGIN: '/login',

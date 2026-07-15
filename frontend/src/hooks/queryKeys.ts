@@ -43,6 +43,7 @@ export const queryKeys = {
   dashboard: {
     stats: (eventId?: string) => ['dashboard', 'stats', eventId] as const,
     recent: (eventId?: string) => ['dashboard', 'recent', eventId] as const,
+    report: (params?: unknown) => ['dashboard', 'report', params] as const,
   },
   platformDashboard: {
     stats: ['platformDashboard', 'stats'] as const,

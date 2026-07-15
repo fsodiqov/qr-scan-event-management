@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { ApiResponse, DashboardStats, RecentActivity } from '@/types';
+import type { ApiResponse, DashboardReport, DashboardReportParams, DashboardStats, RecentActivity } from '@/types';
 
 export const dashboardApi = {
   async getStats(eventId?: string): Promise<DashboardStats> {
@@ -9,7 +9,14 @@ export const dashboardApi = {
     return data.data!;
   },
 
-  async getRecent(eventId?: string, page = 1, limit = 10) {
+  async getReport(params?: DashboardReportParams): Promise<DashboardReport> {
+    const { data } = await apiClient.get<ApiResponse<DashboardReport>>('/dashboard/report', {
+      params,
+    });
+    return data.data!;
+  },
+
+  async getRecent(eventId?: string, page = 1, limit = 5) {
     const { data } = await apiClient.get<ApiResponse<RecentActivity[]>>('/dashboard/recent', {
       params: { eventId, page, limit },
     });

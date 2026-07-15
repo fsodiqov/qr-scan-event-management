@@ -33,7 +33,7 @@ const organizationSchema = new Schema<IOrganization>(
     logo: {
       type: String,
       trim: true,
-      maxlength: 500,
+      maxlength: 200000,
     },
     subscriptionId: {
       type: Schema.Types.ObjectId,

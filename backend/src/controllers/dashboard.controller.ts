@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { dashboardService } from '../services/dashboard.service';
 import { sendSuccess } from '../utils/apiResponse';
 import { getAuthContext } from '../middleware/auth';
+import type { DashboardReportQuery } from '../validators/dashboard.validator';
 
 export class DashboardController {
   async getStats(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -9,6 +10,18 @@ export class DashboardController {
       const eventId = req.query.eventId as string | undefined;
       const stats = await dashboardService.getStats(getAuthContext(req), eventId);
       sendSuccess({ res, data: stats });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getReport(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const report = await dashboardService.getReport(
+        getAuthContext(req),
+        req.query as unknown as DashboardReportQuery,
+      );
+      sendSuccess({ res, data: report });
     } catch (error) {
       next(error);
     }

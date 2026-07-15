@@ -3,8 +3,10 @@ import { ConfigProvider, App as AntApp } from 'antd';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { AppRoutes } from '@/routes/AppRoutes';
 import { getAntdLocale } from '@/i18n/antdLocales';
+import { getAntdTheme } from '@/theme/tokens';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -16,20 +18,12 @@ const queryClient = new QueryClient({
   },
 });
 
-function AppProviders() {
+function ThemedApp() {
   const { i18n } = useTranslation();
+  const { mode } = useTheme();
 
   return (
-    <ConfigProvider
-      locale={getAntdLocale(i18n.language)}
-      theme={{
-        token: {
-          colorPrimary: '#3b6fd9',
-          borderRadius: 8,
-          colorBgLayout: '#f1f5f9',
-        },
-      }}
-    >
+    <ConfigProvider locale={getAntdLocale(i18n.language)} theme={getAntdTheme(mode)}>
       <AntApp>
         <BrowserRouter>
           <AuthProvider>
@@ -44,7 +38,9 @@ function AppProviders() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AppProviders />
+      <ThemeProvider>
+        <ThemedApp />
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

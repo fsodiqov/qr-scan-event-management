@@ -93,6 +93,22 @@ export class OrganizationController {
     }
   }
 
+  async uploadMyLogo(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const organization = await organizationService.uploadMyLogo(
+        getAuthContext(req),
+        req.file,
+      );
+      sendSuccess({
+        res,
+        data: organization,
+        message: 'Organization logo updated successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async listMembers(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const organizationId = getParamId(req.params.id);

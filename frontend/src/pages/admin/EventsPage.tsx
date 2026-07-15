@@ -10,6 +10,7 @@ import {
   Space,
   Table,
   Tag,
+  Typography,
   message,
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
@@ -19,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { PERMISSIONS } from '@/constants/permissions';
 import { PageHeader } from '@/components/common/PageHeader';
+import { ExportCsvButton } from '@/components/common/ExportCsvButton';
 import {
   useCreateEvent,
   useDeleteEvent,
@@ -28,15 +30,13 @@ import {
 } from '@/hooks/useEvents';
 import { useStatusLabels } from '@/hooks/useStatusLabels';
 import { useIsMobile } from '@/hooks/useBreakpoint';
+import { fetchAllForExport, useCsvExport } from '@/hooks/useCsvExport';
 import { formatDate, formatDateTime } from '@/utils/formatDate';
 import { getApiErrorMessage } from '@/utils/helpers';
+import { tablePagination } from '@/utils/tablePagination';
+import { eventsApi } from '@/api';
+import { eventStatusColors } from '@/theme/statusColors';
 import type { Event, EventStatus } from '@/types';
-
-const STATUS_COLORS: Record<EventStatus, string> = {
-  draft: 'default',
-  active: 'green',
-  closed: 'red',
-};
 
 interface EventFormValues {
   title: string;
@@ -46,6 +46,14 @@ interface EventFormValues {
   status?: EventStatus;
 }
 
+function EventStatusBadge({ status, label }: { status: EventStatus; label: string }) {
+  return (
+    <Tag className="events-status-badge" color={eventStatusColors[status]}>
+      {label}
+    </Tag>
+  );
+}
+
 export function EventsPage() {
   const { t } = useTranslation();
   const { hasPermission } = useAuth();
@@ -53,14 +61,15 @@ export function EventsPage() {
   const isMobile = useIsMobile();
   const { eventStatus, eventStatusOptions } = useStatusLabels();
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState<EventStatus | undefined>();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [form] = Form.useForm<EventFormValues>();
 
   const params = useMemo(
-    () => ({ page, limit: 10, status: statusFilter }),
-    [page, statusFilter],
+    () => ({ page, limit: pageSize, status: statusFilter }),
+    [page, pageSize, statusFilter],
   );
 
   const { data, isLoading } = useEvents(params);
@@ -68,6 +77,41 @@ export function EventsPage() {
   const updateEvent = useUpdateEvent();
   const updateStatus = useUpdateEventStatus();
   const deleteEvent = useDeleteEvent();
+  const { exporting, runExport } = useCsvExport();
+
+  const handleExportCsv = () => {
+    void runExport(async () => {
+      const events = await fetchAllForExport(async (exportPage, limit) => {
+        const result = await eventsApi.list({
+          page: exportPage,
+          limit,
+          status: statusFilter,
+        });
+        return {
+          items: result.events,
+          total: result.meta?.total ?? result.events.length,
+        };
+      });
+
+      return {
+        filenamePrefix: 'events',
+        headers: [
+          t('common.title'),
+          t('common.location'),
+          t('common.date'),
+          t('common.status'),
+          t('common.created'),
+        ],
+        rows: events.map((event) => [
+          event.title,
+          event.location,
+          formatDate(event.eventDate),
+          eventStatus(event.status),
+          formatDateTime(event.createdAt),
+        ]),
+      };
+    });
+  };
 
   const openCreateModal = () => {
     setEditingEvent(null);
@@ -130,25 +174,37 @@ export function EventsPage() {
   };
 
   const columns: ColumnsType<Event> = [
-    { title: t('common.title'), dataIndex: 'title', key: 'title' },
+    {
+      title: t('common.title'),
+      dataIndex: 'title',
+      key: 'title',
+      render: (value: string) => (
+        <Typography.Text className="events-cell-title">{value}</Typography.Text>
+      ),
+    },
     {
       title: t('common.location'),
       dataIndex: 'location',
       key: 'location',
       responsive: ['md'],
+      render: (value: string) => (
+        <Typography.Text className="events-cell-secondary">{value}</Typography.Text>
+      ),
     },
     {
       title: t('common.date'),
       dataIndex: 'eventDate',
       key: 'eventDate',
-      render: (value) => formatDate(value),
+      render: (value) => (
+        <Typography.Text className="events-cell-secondary">{formatDate(value)}</Typography.Text>
+      ),
     },
     {
       title: t('common.status'),
       dataIndex: 'status',
       key: 'status',
       render: (status: EventStatus) => (
-        <Tag color={STATUS_COLORS[status]}>{eventStatus(status)}</Tag>
+        <EventStatusBadge status={status} label={eventStatus(status)} />
       ),
     },
     {
@@ -156,79 +212,99 @@ export function EventsPage() {
       dataIndex: 'createdAt',
       key: 'createdAt',
       responsive: ['lg'],
-      render: (value) => formatDateTime(value),
+      render: (value) => (
+        <Typography.Text className="events-cell-muted">{formatDateTime(value)}</Typography.Text>
+      ),
     },
     {
       title: t('common.actions'),
       key: 'actions',
       fixed: isMobile ? 'right' : undefined,
-      render: (_, record) => (
-        <Space wrap>
-          {canManageEvents ? (
-            <>
-              <Select
+      render: (_, record) =>
+        canManageEvents ? (
+          <div className="events-actions">
+            <Select
+              size="small"
+              value={record.status}
+              className="events-actions-status"
+              style={{ width: isMobile ? 110 : 130 }}
+              onChange={(value) => handleStatusChange(record._id, value)}
+              options={eventStatusOptions()}
+              aria-label={t('common.status')}
+            />
+            <Space size={8} className="events-actions-icons" align="center">
+              <Button
                 size="small"
-                value={record.status}
-                style={{ width: isMobile ? 110 : 130 }}
-                onChange={(value) => handleStatusChange(record._id, value)}
-                options={eventStatusOptions()}
+                type="text"
+                icon={<EditOutlined />}
+                onClick={() => openEditModal(record)}
+                aria-label={t('common.edit')}
               />
-              <Button size="small" icon={<EditOutlined />} onClick={() => openEditModal(record)} />
-              <Popconfirm title={t('events.deleteConfirm')} onConfirm={() => handleDelete(record._id)}>
-                <Button size="small" danger icon={<DeleteOutlined />} />
+              <Popconfirm
+                title={t('events.deleteConfirm')}
+                onConfirm={() => handleDelete(record._id)}
+              >
+                <Button
+                  size="small"
+                  type="text"
+                  danger
+                  icon={<DeleteOutlined />}
+                  aria-label={t('common.delete')}
+                />
               </Popconfirm>
-            </>
-          ) : (
-            <Tag color={STATUS_COLORS[record.status]}>{eventStatus(record.status)}</Tag>
-          )}
-        </Space>
-      ),
+            </Space>
+          </div>
+        ) : (
+          <EventStatusBadge status={record.status} label={eventStatus(record.status)} />
+        ),
     },
   ];
 
   return (
-    <div>
-      <PageHeader
-        title={t('events.title')}
-        subtitle={t('events.subtitle')}
-        extra={
-          canManageEvents ? (
-            <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal} block={isMobile}>
-              {t('events.addEvent')}
-            </Button>
-          ) : undefined
-        }
-      />
+    <div className="events-page">
+      <PageHeader title={t('events.title')} subtitle={t('events.subtitle')} />
 
-      <Space style={{ marginBottom: 16, width: '100%' }} wrap>
+      <div className="events-toolbar">
         <Select
           allowClear
           placeholder={t('events.filterStatus')}
-          style={{ width: '100%', maxWidth: 200 }}
+          className="events-toolbar-filter"
           value={statusFilter}
           onChange={(value) => {
             setPage(1);
             setStatusFilter(value);
           }}
           options={eventStatusOptions()}
+          aria-label={t('events.filterStatus')}
         />
-      </Space>
+        <div className="table-toolbar-actions">
+          <ExportCsvButton onClick={handleExportCsv} loading={exporting} block={isMobile} />
+          {canManageEvents && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={openCreateModal}
+              block={isMobile}
+              className="events-toolbar-cta"
+            >
+              {t('events.addEvent')}
+            </Button>
+          )}
+        </div>
+      </div>
 
       <Table
+        className="events-table"
         rowKey="_id"
         loading={isLoading}
         columns={columns}
         dataSource={data?.events ?? []}
         size={isMobile ? 'small' : 'middle'}
         scroll={{ x: 'max-content' }}
-        pagination={{
-          current: page,
-          pageSize: 10,
-          total: data?.meta?.total ?? 0,
-          onChange: setPage,
-          showSizeChanger: false,
-          simple: isMobile,
-        }}
+        pagination={tablePagination(page, pageSize, data?.meta?.total ?? 0, (nextPage, nextSize) => {
+          setPage(nextSize !== pageSize ? 1 : nextPage);
+          setPageSize(nextSize);
+        })}
       />
 
       <Modal
