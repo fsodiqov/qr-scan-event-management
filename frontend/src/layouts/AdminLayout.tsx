@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { useIsMobile } from '@/hooks/useBreakpoint';
 import { getMenuItems } from '@/config/navigation';
+import { ScannerFab } from '@/components/common/ScannerFab';
 
 const { Header, Sider, Content } = Layout;
 
@@ -73,6 +74,19 @@ export function AdminLayout() {
     />
   );
 
+  const logoutButton = (iconOnly = false) => (
+    <div className="admin-sider-logout">
+      <Button
+        block={!iconOnly}
+        icon={<LogoutOutlined />}
+        onClick={handleLogout}
+        aria-label={t('nav.logout')}
+      >
+        {iconOnly ? null : t('nav.logout')}
+      </Button>
+    </div>
+  );
+
   return (
     <Layout className="admin-shell">
       {!isMobile && (
@@ -86,6 +100,7 @@ export function AdminLayout() {
         >
           {siderLogo}
           {navMenu}
+          {logoutButton(collapsed)}
         </Sider>
       )}
 
@@ -94,10 +109,11 @@ export function AdminLayout() {
         placement="left"
         open={isMobile && drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        styles={{ body: { padding: 0 } }}
+        styles={{ body: { padding: 0, display: 'flex', flexDirection: 'column', height: '100%' } }}
         width={260}
       >
         {navMenu}
+        {logoutButton(false)}
       </Drawer>
 
       <Layout className="admin-main">
@@ -135,18 +151,12 @@ export function AdminLayout() {
             )}
             <LanguageSwitcher size="small" compact={isMobile} />
             {!isMobile && <Typography.Text>{user?.name}</Typography.Text>}
-            <Button
-              icon={<LogoutOutlined />}
-              onClick={handleLogout}
-              aria-label={t('nav.logout')}
-            >
-              {isMobile ? null : t('nav.logout')}
-            </Button>
           </Space>
         </Header>
         <Content className="admin-content">
           <Outlet />
         </Content>
+        <ScannerFab />
       </Layout>
     </Layout>
   );

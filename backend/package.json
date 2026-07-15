@@ -1,6 +1,6 @@
 {
   "name": "qr-event-management-backend",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "QR Event Attendance Management System API",
   "main": "dist/index.js",
   "scripts": {
@@ -10,6 +10,8 @@
     "seed": "tsx src/scripts/seed.ts",
     "seed:mock": "tsx src/scripts/seedMockData.ts",
     "seed:mock:reset": "SEED_RESET=true tsx src/scripts/seedMockData.ts",
+    "seed:orgs": "tsx src/scripts/seedOrganizations.ts",
+    "seed:orgs:reset": "SEED_RESET=true tsx src/scripts/seedOrganizations.ts",
     "seed:reset": "tsx src/scripts/seedReset.ts",
     "migrate:login": "tsx src/scripts/migrateEmailToLogin.ts"
   },

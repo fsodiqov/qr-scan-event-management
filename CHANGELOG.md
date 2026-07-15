@@ -5,6 +5,19 @@ Barcha muhim o'zgarishlar ushbu faylda qayd etiladi.
 Format [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ga asoslangan.
 Versiyalash [Semantic Versioning](https://semver.org/) (SemVer) bo'yicha yuritiladi.
 
+## [1.5.0] - 2026-07-15
+
+### Added
+
+- QR Scanner floating action button (pastki o‘ng) — `org:attendance_scan` ruxsati uchun
+- `npm run seed:orgs` / `seed:orgs:reset` — bir nechta demo organization, team va eventlar
+- Seed: Admin va Operator foydalanuvchilari (`admin` / `operator`)
+
+### Changed
+
+- Logout tugmasi headerdan sidebar pastiga ko‘chirildi (mobil drawerda ham)
+- `delete.md` — multi-org seed credentiallari
+
 ## [1.4.0] - 2026-06-27
 
 ### Added
