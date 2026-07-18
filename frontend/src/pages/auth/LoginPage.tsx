@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Button, Card, Checkbox, Form, Input, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -17,7 +17,7 @@ interface LoginFormValues {
 // Demo convenience — seed owner credentials (see delete.md / npm run seed)
 const DEMO_LOGIN_DEFAULTS: LoginFormValues = {
   login: 'owner',
-  password: 'owner123456',
+  password: 'Owner123456!',
   rememberMe: false,
 };
 
@@ -29,6 +29,10 @@ export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const { border, text } = useThemeTokens();
+
+  useEffect(() => {
+    form.setFieldsValue(DEMO_LOGIN_DEFAULTS);
+  }, [form]);
 
   const handleSubmit = async (values: LoginFormValues) => {
     setError(null);

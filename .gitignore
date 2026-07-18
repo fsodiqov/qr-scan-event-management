@@ -4,3 +4,4 @@ dist/
 .env.cloudrun
 *.log
 .DS_Store
+STACK_CHECKLIST.md

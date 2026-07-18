@@ -220,10 +220,20 @@ export interface LoginPayload {
 }
 
 export interface LoginResponse {
-  token: string;
+  accessToken: string;
   user: AuthUser;
   organization?: Organization;
   role: Role;
+}
+
+export interface AuthSession {
+  id: string;
+  userAgent?: string;
+  ip?: string;
+  rememberMe: boolean;
+  createdAt: string;
+  expiresAt: string;
+  current: boolean;
 }
 
 export interface UpdateProfilePayload {

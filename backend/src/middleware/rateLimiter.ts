@@ -1,10 +1,20 @@
 import rateLimit from 'express-rate-limit';
+import { Request } from 'express';
+
+function clientIp(req: Request): string {
+  return req.ip || req.socket.remoteAddress || 'unknown';
+}
 
 export const loginRateLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => {
+    const login =
+      typeof req.body?.login === 'string' ? req.body.login.trim().toLowerCase() : '';
+    return `${clientIp(req)}:${login}`;
+  },
   message: {
     success: false,
     message: 'Too many login attempts. Please try again later.',

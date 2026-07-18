@@ -1,20 +1,27 @@
-import { TOKEN_KEY } from './constants';
+import { REMEMBER_ME_KEY, TOKEN_KEY } from './constants';
 
+/** Preference only — never stores JWT. Refresh lives in HttpOnly cookie. */
 export const storage = {
-  getToken(): string | null {
-    return localStorage.getItem(TOKEN_KEY) ?? sessionStorage.getItem(TOKEN_KEY);
+  getRememberMe(): boolean {
+    return localStorage.getItem(REMEMBER_ME_KEY) === '1';
   },
 
-  setToken(token: string, rememberMe = false): void {
-    localStorage.removeItem(TOKEN_KEY);
-    sessionStorage.removeItem(TOKEN_KEY);
-
-    const store = rememberMe ? localStorage : sessionStorage;
-    store.setItem(TOKEN_KEY, token);
+  setRememberMe(value: boolean): void {
+    if (value) {
+      localStorage.setItem(REMEMBER_ME_KEY, '1');
+    } else {
+      localStorage.removeItem(REMEMBER_ME_KEY);
+    }
   },
 
-  removeToken(): void {
+  /** Remove legacy JWT storage keys from older app versions. */
+  clearLegacyTokens(): void {
     localStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(TOKEN_KEY);
+  },
+
+  clearAuthPreferences(): void {
+    localStorage.removeItem(REMEMBER_ME_KEY);
+    this.clearLegacyTokens();
   },
 };

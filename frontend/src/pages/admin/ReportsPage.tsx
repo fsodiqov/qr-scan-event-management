@@ -37,7 +37,7 @@ import { fetchAllForExport, useCsvExport } from '@/hooks/useCsvExport';
 import { formatDateTime } from '@/utils/formatDate';
 import { getEntityName } from '@/utils/helpers';
 import { tablePagination } from '@/utils/tablePagination';
-import { brand, chart, semantic, status } from '@/theme/tokens';
+import { chart, semantic } from '@/theme/tokens';
 import type { Attendance, AttendanceStatus, ReportPeriod } from '@/types';
 
 type RangeValue = [Dayjs | null, Dayjs | null] | null;
@@ -261,7 +261,7 @@ export function ReportsPage() {
               title={t('dashboard.totalParticipants')}
               value={stats.totalParticipants}
               icon={<TeamOutlined />}
-              color={brand.primary}
+              color={chart.teal}
             />
           </Col>
           <Col xs={12} sm={8} lg={4}>
@@ -270,6 +270,7 @@ export function ReportsPage() {
               value={stats.checkedIn}
               icon={<ImportOutlined />}
               color={semantic.success}
+              colorValue
             />
           </Col>
           <Col xs={12} sm={8} lg={4}>
@@ -277,7 +278,7 @@ export function ReportsPage() {
               title={t('dashboard.checkedOut')}
               value={stats.checkedOut}
               icon={<ExportOutlined />}
-              color={status.completed}
+              color={chart.orange}
             />
           </Col>
           <Col xs={12} sm={8} lg={4}>
@@ -286,7 +287,7 @@ export function ReportsPage() {
               value={stats.checkInRate}
               suffix="%"
               icon={<PercentageOutlined />}
-              color={brand.primary}
+              color={chart.purple}
             />
           </Col>
           <Col xs={12} sm={8} lg={4}>
@@ -294,7 +295,7 @@ export function ReportsPage() {
               title={t('reports.scansInPeriod')}
               value={stats.scansToday}
               icon={<ScanOutlined />}
-              color={brand.primary}
+              color={semantic.info}
             />
           </Col>
           <Col xs={12} sm={8} lg={4}>
@@ -303,6 +304,7 @@ export function ReportsPage() {
               value={stats.invalidScansToday}
               icon={<WarningOutlined />}
               color={semantic.error}
+              colorValue={stats.invalidScansToday > 0}
             />
           </Col>
         </Row>

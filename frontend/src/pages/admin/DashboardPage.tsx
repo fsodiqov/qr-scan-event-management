@@ -31,7 +31,7 @@ export function DashboardPage() {
   const { hasPermission } = useAuth();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: recent, isLoading: recentLoading } = useRecentActivity(undefined, 5);
-  const { border, brand, radius, shadow, semantic, status, text } = useThemeTokens();
+  const { border, brand, chart, radius, shadow, semantic, text } = useThemeTokens();
 
   if (statsLoading) {
     return <LoadingSpinner tip={t('common.loading')} />;
@@ -85,6 +85,7 @@ export function DashboardPage() {
             title={t('dashboard.totalParticipants')}
             value={stats?.totalParticipants ?? 0}
             icon={<TeamOutlined />}
+            color={chart.teal}
           />
         </Col>
         <Col xs={24} sm={12} lg={8} xl={4}>
@@ -93,6 +94,7 @@ export function DashboardPage() {
             value={stats?.checkedIn ?? 0}
             icon={<ImportOutlined />}
             color={semantic.success}
+            colorValue
           />
         </Col>
         <Col xs={24} sm={12} lg={8} xl={4}>
@@ -100,7 +102,7 @@ export function DashboardPage() {
             title={t('dashboard.checkedOut')}
             value={stats?.checkedOut ?? 0}
             icon={<ExportOutlined />}
-            color={status.completed}
+            color={chart.orange}
           />
         </Col>
         <Col xs={24} sm={12} lg={8} xl={4}>
@@ -109,7 +111,7 @@ export function DashboardPage() {
             value={stats?.checkInRate ?? 0}
             suffix="%"
             icon={<PercentageOutlined />}
-            color={brand.primary}
+            color={chart.purple}
           />
         </Col>
         <Col xs={24} sm={12} lg={8} xl={4}>
@@ -126,6 +128,7 @@ export function DashboardPage() {
             value={stats?.invalidScansToday ?? 0}
             icon={<WarningOutlined />}
             color={(stats?.invalidScansToday ?? 0) > 0 ? semantic.error : text.secondary}
+            colorValue={(stats?.invalidScansToday ?? 0) > 0}
           />
         </Col>
       </Row>

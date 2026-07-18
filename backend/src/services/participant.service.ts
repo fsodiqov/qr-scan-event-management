@@ -10,6 +10,7 @@ import {
 } from '../utils/AppError';
 import { buildPaginationMeta, parsePagination } from '../utils/pagination';
 import { generateQrToken, buildQrUrl, QR_CODE_OPTIONS } from '../utils/qrToken';
+import { escapeRegex } from '../utils/escapeRegex';
 import {
   CreateParticipantInput,
   ListParticipantsQuery,
@@ -78,10 +79,11 @@ export class ParticipantService {
     }
 
     if (query.search) {
+      const escaped = escapeRegex(query.search);
       filter.$or = [
-        { name: { $regex: query.search, $options: 'i' } },
-        { phone: { $regex: query.search, $options: 'i' } },
-        { email: { $regex: query.search, $options: 'i' } },
+        { name: { $regex: escaped, $options: 'i' } },
+        { phone: { $regex: escaped, $options: 'i' } },
+        { email: { $regex: escaped, $options: 'i' } },
       ];
     }
 

@@ -1,12 +1,13 @@
 import { z } from 'zod';
 import { ORG_ROLES } from '../constants/roles';
 import { loginFieldSchema } from './loginField';
+import { optionalPasswordPolicySchema } from './passwordPolicy';
 
 export const createUserSchema = z.object({
   name: z.string().min(2).max(120),
   login: loginFieldSchema,
   phone: z.string().min(5).max(20).optional(),
-  password: z.string().min(6).optional(),
+  password: optionalPasswordPolicySchema,
   photoUrl: z.string().url().optional().or(z.literal('')),
   role: z.enum([ORG_ROLES.ADMIN, ORG_ROLES.OPERATOR]).default(ORG_ROLES.ADMIN),
 });
@@ -16,7 +17,7 @@ export const updateUserSchema = z
     name: z.string().min(2).max(120).optional(),
     login: loginFieldSchema.optional(),
     phone: z.string().min(5).max(20).optional(),
-    password: z.string().min(6).optional(),
+    password: optionalPasswordPolicySchema,
     photoUrl: z.string().url().optional().or(z.literal('')),
     isActive: z.boolean().optional(),
     role: z.enum([ORG_ROLES.ADMIN, ORG_ROLES.OPERATOR]).optional(),

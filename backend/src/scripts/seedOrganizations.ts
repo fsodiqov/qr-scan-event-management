@@ -46,9 +46,9 @@ const EXTRA_ORGS: OrgSpec[] = [
     name: 'IT Park Events',
     slug: 'itpark-events',
     members: [
-      { login: 'itpark-owner', password: 'itpark123456', name: 'IT Park Owner', role: ORG_ROLES.OWNER },
-      { login: 'itpark-admin', password: 'itpark123456', name: 'IT Park Admin', role: ORG_ROLES.ADMIN },
-      { login: 'itpark-operator', password: 'itpark123456', name: 'IT Park Operator', role: ORG_ROLES.OPERATOR },
+      { login: 'itpark-owner', password: 'Itpark123456!', name: 'IT Park Owner', role: ORG_ROLES.OWNER },
+      { login: 'itpark-admin', password: 'Itpark123456!', name: 'IT Park Admin', role: ORG_ROLES.ADMIN },
+      { login: 'itpark-operator', password: 'Itpark123456!', name: 'IT Park Operator', role: ORG_ROLES.OPERATOR },
     ],
     events: [
       {
@@ -86,9 +86,9 @@ const EXTRA_ORGS: OrgSpec[] = [
     name: 'Edu Summit Group',
     slug: 'edu-summit',
     members: [
-      { login: 'edu-owner', password: 'edu123456', name: 'Edu Summit Owner', role: ORG_ROLES.OWNER },
-      { login: 'edu-admin', password: 'edu123456', name: 'Edu Summit Admin', role: ORG_ROLES.ADMIN },
-      { login: 'edu-operator', password: 'edu123456', name: 'Edu Summit Operator', role: ORG_ROLES.OPERATOR },
+      { login: 'edu-owner', password: 'Edu123456!xx', name: 'Edu Summit Owner', role: ORG_ROLES.OWNER },
+      { login: 'edu-admin', password: 'Edu123456!xx', name: 'Edu Summit Admin', role: ORG_ROLES.ADMIN },
+      { login: 'edu-operator', password: 'Edu123456!xx', name: 'Edu Summit Operator', role: ORG_ROLES.OPERATOR },
     ],
     events: [
       {
@@ -118,9 +118,9 @@ const EXTRA_ORGS: OrgSpec[] = [
     name: 'MedExpo Uzbekistan',
     slug: 'medexpo-uz',
     members: [
-      { login: 'med-owner', password: 'med123456', name: 'MedExpo Owner', role: ORG_ROLES.OWNER },
-      { login: 'med-admin', password: 'med123456', name: 'MedExpo Admin', role: ORG_ROLES.ADMIN },
-      { login: 'med-operator', password: 'med123456', name: 'MedExpo Operator', role: ORG_ROLES.OPERATOR },
+      { login: 'med-owner', password: 'Med123456!xx', name: 'MedExpo Owner', role: ORG_ROLES.OWNER },
+      { login: 'med-admin', password: 'Med123456!xx', name: 'MedExpo Admin', role: ORG_ROLES.ADMIN },
+      { login: 'med-operator', password: 'Med123456!xx', name: 'MedExpo Operator', role: ORG_ROLES.OPERATOR },
     ],
     events: [
       {
@@ -151,9 +151,9 @@ const EXTRA_ORGS: OrgSpec[] = [
     name: 'Sports Arena Live',
     slug: 'sports-arena',
     members: [
-      { login: 'sports-owner', password: 'sports123456', name: 'Sports Arena Owner', role: ORG_ROLES.OWNER },
-      { login: 'sports-admin', password: 'sports123456', name: 'Sports Arena Admin', role: ORG_ROLES.ADMIN },
-      { login: 'sports-operator', password: 'sports123456', name: 'Sports Arena Operator', role: ORG_ROLES.OPERATOR },
+      { login: 'sports-owner', password: 'Sports123456!', name: 'Sports Arena Owner', role: ORG_ROLES.OWNER },
+      { login: 'sports-admin', password: 'Sports123456!', name: 'Sports Arena Admin', role: ORG_ROLES.ADMIN },
+      { login: 'sports-operator', password: 'Sports123456!', name: 'Sports Arena Operator', role: ORG_ROLES.OPERATOR },
     ],
     events: [
       {

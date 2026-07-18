@@ -8,12 +8,17 @@ function isAllowedOrigin(origin: string | undefined): boolean {
 
   if (allowedOrigins.includes(origin)) return true;
 
-  try {
-    const { hostname } = new URL(origin);
-    return hostname.endsWith('.vercel.app') || hostname === 'vercel.app';
-  } catch {
-    return false;
+  // Preview deployments only outside production
+  if (env.NODE_ENV !== 'production') {
+    try {
+      const { hostname } = new URL(origin);
+      return hostname.endsWith('.vercel.app') || hostname === 'vercel.app';
+    } catch {
+      return false;
+    }
   }
+
+  return false;
 }
 
 export const corsOptions: CorsOptions = {

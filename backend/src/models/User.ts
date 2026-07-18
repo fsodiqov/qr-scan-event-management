@@ -2,6 +2,8 @@ import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 const BCRYPT_ROUNDS = 12;
+export const MAX_FAILED_LOGIN_ATTEMPTS = 5;
+export const LOGIN_LOCK_DURATION_MS = 15 * 60 * 1000;
 
 export interface IUser extends Document {
   name: string;
@@ -11,9 +13,12 @@ export interface IUser extends Document {
   photoUrl?: string;
   isSuperAdmin: boolean;
   isActive: boolean;
+  failedLoginAttempts: number;
+  lockUntil?: Date;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidate: string): Promise<boolean>;
+  isLocked(): boolean;
 }
 
 const userSchema = new Schema<IUser>(
@@ -54,13 +59,28 @@ const userSchema = new Schema<IUser>(
       type: Boolean,
       default: true,
     },
+    failedLoginAttempts: {
+      type: Number,
+      default: 0,
+      select: false,
+    },
+    lockUntil: {
+      type: Date,
+      select: false,
+    },
   },
   {
     timestamps: true,
     toJSON: {
       virtuals: true,
       transform(_doc, ret) {
-        const { passwordHash: _passwordHash, __v: _v, ...safe } = ret;
+        const {
+          passwordHash: _passwordHash,
+          failedLoginAttempts: _attempts,
+          lockUntil: _lockUntil,
+          __v: _v,
+          ...safe
+        } = ret;
         return safe;
       },
     },
@@ -90,6 +110,10 @@ userSchema.methods.comparePassword = async function (
     return false;
   }
   return bcrypt.compare(candidate, this.passwordHash);
+};
+
+userSchema.methods.isLocked = function (): boolean {
+  return Boolean(this.lockUntil && this.lockUntil.getTime() > Date.now());
 };
 
 export const User = mongoose.model<IUser>('User', userSchema);

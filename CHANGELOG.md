@@ -5,6 +5,29 @@ Barcha muhim o'zgarishlar ushbu faylda qayd etiladi.
 Format [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) ga asoslangan.
 Versiyalash [Semantic Versioning](https://semver.org/) (SemVer) bo'yicha yuritiladi.
 
+## [1.7.0] - 2026-07-18
+
+### Added
+
+- HttpOnly refresh token cookie + DB `RefreshSession` (rotation, revoke, logout-all)
+- Access JWT faqat memory’da; axios interceptor silent `/auth/refresh`
+- Account lockout (5 muvaffaqiyatsiz → 15 daqiqa) va login rate limit (`IP + login`)
+- Active sessions UI (revoke / logout all devices)
+- Password policy (12+, upper/lower/digit/special)
+- `express-mongo-sanitize`, `$regex` escape, QR token Zod validation
+- Production Helmet CSP; auth cookie Origin allowlist
+
+### Changed
+
+- JWT: access `15m`, refresh `7d` / remember-me `30d`; `JWT_SECRET` min 32 belgi
+- CORS: production’da `*.vercel.app` wildcard olib tashlandi
+- Seed / demo parollar yangi siyosatga moslashtirildi
+- Login demo defaults: `owner` / `Owner123456!`
+
+### Fixed
+
+- Dashboard/Reports StatCard layout tweaks
+
 ## [1.6.0] - 2026-07-16
 
 ### Added

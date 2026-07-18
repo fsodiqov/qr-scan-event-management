@@ -18,7 +18,7 @@ import {
 } from '../validators/organizationUser.validator';
 import { PaginationMeta, AuthContext } from '../types';
 import { requireOrganizationId } from '../utils/tenantScope';
-import { generateQrToken } from '../utils/qrToken';
+import { generateCompliantPassword } from '../utils/generatePassword';
 
 export interface OrganizationUserListItem {
   id: string;
@@ -55,7 +55,7 @@ export class OrganizationUserService {
       }
     }
 
-    const tempPassword = input.password ?? generateQrToken().slice(0, 10);
+    const tempPassword = input.password ?? generateCompliantPassword();
 
     const user = new User({
       name: input.name,

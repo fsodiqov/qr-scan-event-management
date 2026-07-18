@@ -6,13 +6,17 @@ interface StatCardProps {
   title: string;
   value: number;
   icon?: ReactNode;
+  /** Accent for the icon (and value when `colorValue` is true). */
   color?: string;
+  /** When true, the number uses `color` too — for success/error metrics only. */
+  colorValue?: boolean;
   suffix?: string;
 }
 
-export function StatCard({ title, value, icon, color, suffix }: StatCardProps) {
+export function StatCard({ title, value, icon, color, colorValue = false, suffix }: StatCardProps) {
   const { brand, border, radius, shadow, text } = useThemeTokens();
   const accent = color ?? brand.primary;
+  const valueTone = colorValue ? accent : text.primary;
 
   return (
     <Card
@@ -61,7 +65,7 @@ export function StatCard({ title, value, icon, color, suffix }: StatCardProps) {
               fontWeight: 700,
               lineHeight: 1.15,
               letterSpacing: '-0.03em',
-              color: accent,
+              color: valueTone,
               fontVariantNumeric: 'tabular-nums',
             }}
           >
@@ -72,7 +76,7 @@ export function StatCard({ title, value, icon, color, suffix }: StatCardProps) {
                   marginLeft: 2,
                   fontSize: 18,
                   fontWeight: 600,
-                  color: accent,
+                  color: valueTone,
                 }}
               >
                 {suffix}

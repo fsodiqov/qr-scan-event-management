@@ -16,6 +16,7 @@ import { DeleteOutlined, UploadOutlined } from '@ant-design/icons';
 import type { UploadProps } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '@/components/common/PageHeader';
+import { ActiveSessionsCard } from '@/components/account/ActiveSessionsCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUpdateProfile, useUploadMyPhoto } from '@/hooks/useProfile';
 import { getApiErrorMessage } from '@/utils/helpers';
@@ -331,7 +332,22 @@ export function AccountSettingsPage() {
           <Form.Item
             name="newPassword"
             label={t('accountSettings.newPassword')}
-            rules={[{ min: 6, message: t('auth.passwordRequired') }]}
+            rules={[
+              {
+                validator: async (_, value?: string) => {
+                  if (!value) return;
+                  if (
+                    value.length < 12 ||
+                    !/[A-Z]/.test(value) ||
+                    !/[a-z]/.test(value) ||
+                    !/[0-9]/.test(value) ||
+                    !/[^A-Za-z0-9]/.test(value)
+                  ) {
+                    throw new Error(t('accountSettings.passwordPolicy'));
+                  }
+                },
+              },
+            ]}
             style={{ marginBottom: 20 }}
           >
             <Input.Password size="large" autoComplete="new-password" />
@@ -377,6 +393,8 @@ export function AccountSettingsPage() {
           </Form.Item>
         </Form>
       </Card>
+
+      <ActiveSessionsCard />
     </div>
   );
 }

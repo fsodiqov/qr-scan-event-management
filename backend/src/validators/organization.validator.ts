@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ORGANIZATION_STATUS } from '../constants/organizationStatus';
 import { loginFieldSchema } from './loginField';
+import { optionalPasswordPolicySchema } from './passwordPolicy';
 
 const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -22,7 +23,7 @@ export const createOrganizationOwnerSchema = z.object({
   name: z.string().min(2).max(120),
   login: loginFieldSchema,
   phone: z.string().max(20).optional(),
-  password: z.string().min(6).max(128).optional(),
+  password: optionalPasswordPolicySchema,
 });
 
 export const createOrganizationSchema = z.object({

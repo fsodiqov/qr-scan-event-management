@@ -24,7 +24,7 @@ import { upsertSeedUser } from './seedUserUtils';
 const SHOULD_RESET = process.env.SEED_RESET === 'true';
 
 const OWNER_LOGIN = process.env.SEED_OWNER_LOGIN ?? process.env.SEED_OWNER_EMAIL ?? 'owner';
-const OWNER_PASSWORD = process.env.SEED_OWNER_PASSWORD ?? 'owner123456';
+const OWNER_PASSWORD = process.env.SEED_OWNER_PASSWORD ?? 'Owner123456!';
 const OWNER_NAME = process.env.SEED_OWNER_NAME ?? 'Organization Owner';
 const ORG_NAME = process.env.SEED_ORG_NAME ?? 'Demo Organization';
 const ORG_SLUG = process.env.SEED_ORG_SLUG ?? 'demo-org';

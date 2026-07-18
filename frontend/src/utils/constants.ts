@@ -1,4 +1,5 @@
 export const TOKEN_KEY = 'qr_event_token';
+export const REMEMBER_ME_KEY = 'qr_event_remember_me';
 export const THEME_PREFERENCE_KEY = 'qr_event_theme';
 
 export const ROUTES = {

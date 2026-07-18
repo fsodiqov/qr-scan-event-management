@@ -16,6 +16,7 @@ import {
   type Permission,
 } from '@/constants/permissions';
 import { storage } from '@/utils/storage';
+import { tokenMemory } from '@/utils/tokenMemory';
 import type { AuthProfile, AuthUser, LoginPayload, Organization, Role } from '@/types';
 
 interface AuthContextValue {
@@ -35,27 +36,56 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const [hasToken, setHasToken] = useState(() => Boolean(storage.getToken()));
+  const [bootstrapped, setBootstrapped] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function bootstrap() {
+      storage.clearLegacyTokens();
+
+      if (tokenMemory.get()) {
+        if (!cancelled) {
+          setHasSession(true);
+          setBootstrapped(true);
+        }
+        return;
+      }
+
+      const token = await authApi.refresh();
+      if (cancelled) return;
+
+      setHasSession(Boolean(token));
+      setBootstrapped(true);
+    }
+
+    void bootstrap();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const { data: profile, isLoading, isError } = useQuery({
     queryKey: queryKeys.auth.me,
     queryFn: authApi.me,
-    enabled: hasToken,
+    enabled: bootstrapped && hasSession,
     retry: false,
   });
 
   useEffect(() => {
     if (isError) {
-      storage.removeToken();
-      setHasToken(false);
+      tokenMemory.clear();
+      setHasSession(false);
     }
   }, [isError]);
 
   const login = useCallback(
     async (payload: LoginPayload): Promise<AuthProfile> => {
       const result = await authApi.login(payload);
-      storage.setToken(result.token, Boolean(payload.rememberMe));
-      setHasToken(true);
+      storage.setRememberMe(Boolean(payload.rememberMe));
+      setHasSession(true);
 
       const authProfile: AuthProfile = {
         user: result.user,
@@ -73,8 +103,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await authApi.logout();
     } finally {
-      storage.removeToken();
-      setHasToken(false);
+      storage.clearAuthPreferences();
+      tokenMemory.clear();
+      setHasSession(false);
       queryClient.clear();
     }
   }, [queryClient]);
@@ -90,12 +121,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       permissions,
       isSuperAdmin: role === 'super_admin',
       hasPermission: (permission: Permission) => checkPermission(role, permission),
-      isAuthenticated: hasToken && Boolean(profile?.user),
-      isLoading: hasToken && isLoading,
+      isAuthenticated: hasSession && Boolean(profile?.user),
+      isLoading: !bootstrapped || (hasSession && isLoading),
       login,
       logout,
     }),
-    [profile, role, permissions, hasToken, isLoading, login, logout],
+    [profile, role, permissions, hasSession, bootstrapped, isLoading, login, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

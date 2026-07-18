@@ -22,7 +22,8 @@ import {
 import { PaginationMeta } from '../types';
 import { AuthContext } from '../types';
 import { requireOrganizationId } from '../utils/tenantScope';
-import { generateQrToken } from '../utils/qrToken';
+import { generateCompliantPassword } from '../utils/generatePassword';
+import { escapeRegex } from '../utils/escapeRegex';
 import { processLogoFromDataUriOrUrl, processLogoToDataUri } from '../utils/processLogo';
 
 export interface OrganizationListResult {
@@ -91,7 +92,7 @@ export class OrganizationService {
 
     await organization.save();
 
-    const tempPassword = input.owner.password ?? generateQrToken().slice(0, 10);
+    const tempPassword = input.owner.password ?? generateCompliantPassword();
 
     try {
       let user = existingUser;
@@ -144,9 +145,10 @@ export class OrganizationService {
     }
 
     if (query.search) {
+      const escaped = escapeRegex(query.search);
       filter.$or = [
-        { name: { $regex: query.search, $options: 'i' } },
-        { slug: { $regex: query.search, $options: 'i' } },
+        { name: { $regex: escaped, $options: 'i' } },
+        { slug: { $regex: escaped, $options: 'i' } },
       ];
     }
 

@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import { loginFieldSchema } from './loginField';
+import { passwordPolicySchema } from './passwordPolicy';
 
 export const loginSchema = z.object({
   login: loginFieldSchema,
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string().min(1, 'Password is required').max(128),
   rememberMe: z.boolean().optional().default(false),
 });
 
@@ -25,8 +26,8 @@ export const updateProfileSchema = z
   .object({
     name: z.string().min(2).max(120).optional(),
     login: loginFieldSchema.optional(),
-    currentPassword: z.string().min(6).max(128).optional(),
-    newPassword: z.string().min(6).max(128).optional(),
+    currentPassword: z.string().min(1).max(128).optional(),
+    newPassword: passwordPolicySchema.optional(),
     photoUrl: photoUrlSchema.optional().nullable(),
   })
   .refine((data) => Object.values(data).some((value) => value !== undefined), {
@@ -43,6 +44,10 @@ export const updateProfileSchema = z
       path: ['currentPassword'],
     },
   );
+
+export const sessionIdParamSchema = z.object({
+  id: z.string().regex(/^[a-f\d]{24}$/i, 'Invalid session ID'),
+});
 
 export type LoginInput = z.infer<typeof loginSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

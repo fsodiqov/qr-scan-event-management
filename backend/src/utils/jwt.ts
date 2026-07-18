@@ -2,12 +2,17 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 import { JwtPayload } from '../types';
 
-export function signToken(payload: JwtPayload, expiresIn = env.JWT_EXPIRES_IN): string {
+export function signAccessToken(payload: JwtPayload): string {
   return jwt.sign(payload, env.JWT_SECRET, {
-    expiresIn,
+    expiresIn: env.JWT_ACCESS_EXPIRES_IN,
   } as jwt.SignOptions);
 }
 
 export function verifyToken(token: string): JwtPayload {
   return jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+}
+
+/** @deprecated Use signAccessToken */
+export function signToken(payload: JwtPayload, _expiresIn?: string): string {
+  return signAccessToken(payload);
 }

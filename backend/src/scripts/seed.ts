@@ -35,19 +35,19 @@ async function ensureOrgMembership(params: {
 
 export async function runSeed(): Promise<void> {
   const superAdminLogin = process.env.SEED_SUPER_ADMIN_LOGIN ?? process.env.SEED_SUPER_ADMIN_EMAIL ?? 'superadmin';
-  const superAdminPassword = process.env.SEED_SUPER_ADMIN_PASSWORD ?? 'superadmin123456';
+  const superAdminPassword = process.env.SEED_SUPER_ADMIN_PASSWORD ?? 'Superadmin123!';
   const superAdminName = process.env.SEED_SUPER_ADMIN_NAME ?? 'Platform Super Admin';
 
   const ownerLogin = process.env.SEED_OWNER_LOGIN ?? process.env.SEED_OWNER_EMAIL ?? 'owner';
-  const ownerPassword = process.env.SEED_OWNER_PASSWORD ?? 'owner123456';
+  const ownerPassword = process.env.SEED_OWNER_PASSWORD ?? 'Owner123456!';
   const ownerName = process.env.SEED_OWNER_NAME ?? 'Organization Owner';
 
   const adminLogin = process.env.SEED_ADMIN_LOGIN ?? 'admin';
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? 'admin123456';
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? 'Admin123456!';
   const adminName = process.env.SEED_ADMIN_NAME ?? 'Organization Admin';
 
   const operatorLogin = process.env.SEED_OPERATOR_LOGIN ?? 'operator';
-  const operatorPassword = process.env.SEED_OPERATOR_PASSWORD ?? 'operator123456';
+  const operatorPassword = process.env.SEED_OPERATOR_PASSWORD ?? 'Operator123!';
   const operatorName = process.env.SEED_OPERATOR_NAME ?? 'Organization Operator';
 
   const orgName = process.env.SEED_ORG_NAME ?? 'Demo Organization';

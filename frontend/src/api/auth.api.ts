@@ -1,5 +1,14 @@
-import { apiClient } from './client';
-import type { ApiResponse, AuthProfile, AuthUser, LoginPayload, LoginResponse, UpdateProfilePayload } from '@/types';
+import { apiClient, refreshAccessToken } from './client';
+import { tokenMemory } from '@/utils/tokenMemory';
+import type {
+  ApiResponse,
+  AuthProfile,
+  AuthSession,
+  AuthUser,
+  LoginPayload,
+  LoginResponse,
+  UpdateProfilePayload,
+} from '@/types';
 
 export const authApi = {
   async login(payload: LoginPayload): Promise<LoginResponse> {
@@ -7,16 +16,42 @@ export const authApi = {
       '/auth/login',
       payload,
     );
-    return data.data!;
+    const result = data.data!;
+    tokenMemory.set(result.accessToken);
+    return result;
+  },
+
+  async refresh(): Promise<string | null> {
+    return refreshAccessToken();
   },
 
   async logout(): Promise<void> {
-    await apiClient.post('/auth/logout');
+    try {
+      await apiClient.post('/auth/logout');
+    } finally {
+      tokenMemory.clear();
+    }
+  },
+
+  async logoutAll(): Promise<void> {
+    await apiClient.post('/auth/logout-all');
+    tokenMemory.clear();
   },
 
   async me(): Promise<AuthProfile> {
     const { data } = await apiClient.get<ApiResponse<AuthProfile>>('/auth/me');
     return data.data!;
+  },
+
+  async listSessions(): Promise<AuthSession[]> {
+    const { data } = await apiClient.get<ApiResponse<{ sessions: AuthSession[] }>>(
+      '/auth/sessions',
+    );
+    return data.data!.sessions;
+  },
+
+  async revokeSession(id: string): Promise<void> {
+    await apiClient.delete(`/auth/sessions/${id}`);
   },
 
   async updateProfile(payload: UpdateProfilePayload): Promise<AuthUser> {

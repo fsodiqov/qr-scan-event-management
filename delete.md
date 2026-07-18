@@ -1,44 +1,46 @@
 # Seed credentials
 
+Parol siyosati: kamida 12 belgi, katta/kichik harf, raqam va maxsus belgi.
+
 ## Platform
 | Rol | Login | Parol |
 |-----|-------|-------|
-| Super Admin | superadmin | superadmin123456 |
+| Super Admin | superadmin | Superadmin123! |
 
 ## Demo Organization (`demo-org`)
 | Rol | Login | Parol |
 |-----|-------|-------|
-| Owner | owner | owner123456 |
-| Admin | admin | admin123456 |
-| Operator | operator | operator123456 |
+| Owner | owner | Owner123456! |
+| Admin | admin | Admin123456! |
+| Operator | operator | Operator123! |
 
 ## IT Park Events (`itpark-events`)
 | Rol | Login | Parol |
 |-----|-------|-------|
-| Owner | itpark-owner | itpark123456 |
-| Admin | itpark-admin | itpark123456 |
-| Operator | itpark-operator | itpark123456 |
+| Owner | itpark-owner | Itpark123456! |
+| Admin | itpark-admin | Itpark123456! |
+| Operator | itpark-operator | Itpark123456! |
 
 ## Edu Summit Group (`edu-summit`)
 | Rol | Login | Parol |
 |-----|-------|-------|
-| Owner | edu-owner | edu123456 |
-| Admin | edu-admin | edu123456 |
-| Operator | edu-operator | edu123456 |
+| Owner | edu-owner | Edu123456!xx |
+| Admin | edu-admin | Edu123456!xx |
+| Operator | edu-operator | Edu123456!xx |
 
 ## MedExpo Uzbekistan (`medexpo-uz`)
 | Rol | Login | Parol |
 |-----|-------|-------|
-| Owner | med-owner | med123456 |
-| Admin | med-admin | med123456 |
-| Operator | med-operator | med123456 |
+| Owner | med-owner | Med123456!xx |
+| Admin | med-admin | Med123456!xx |
+| Operator | med-operator | Med123456!xx |
 
 ## Sports Arena Live (`sports-arena`)
 | Rol | Login | Parol |
 |-----|-------|-------|
-| Owner | sports-owner | sports123456 |
-| Admin | sports-admin | sports123456 |
-| Operator | sports-operator | sports123456 |
+| Owner | sports-owner | Sports123456! |
+| Admin | sports-admin | Sports123456! |
+| Operator | sports-operator | Sports123456! |
 
 ## Buyruqlar
 - Barcha rollar + demo-org: `npm run seed` (backend)

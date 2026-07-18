@@ -11,7 +11,7 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { usePlatformDashboardStats } from '@/hooks/usePlatformDashboard';
-import { brand, semantic } from '@/theme/tokens';
+import { chart, semantic } from '@/theme/tokens';
 
 export function PlatformDashboardPage() {
   const { t } = useTranslation();
@@ -34,6 +34,7 @@ export function PlatformDashboardPage() {
             title={t('platformDashboard.totalOrganizations')}
             value={stats?.totalOrganizations ?? 0}
             icon={<BankOutlined />}
+            color={chart.teal}
           />
         </Col>
         <Col xs={24} sm={12} lg={8}>
@@ -42,6 +43,7 @@ export function PlatformDashboardPage() {
             value={stats?.activeOrganizations ?? 0}
             icon={<BankOutlined />}
             color={semantic.success}
+            colorValue
           />
         </Col>
         <Col xs={24} sm={12} lg={8}>
@@ -49,6 +51,7 @@ export function PlatformDashboardPage() {
             title={t('platformDashboard.totalSubscriptions')}
             value={stats?.totalSubscriptions ?? 0}
             icon={<CreditCardOutlined />}
+            color={chart.purple}
           />
         </Col>
         <Col xs={24} sm={12} lg={8}>
@@ -56,6 +59,7 @@ export function PlatformDashboardPage() {
             title={t('platformDashboard.totalEvents')}
             value={stats?.totalEvents ?? 0}
             icon={<CalendarOutlined />}
+            color={semantic.info}
           />
         </Col>
         <Col xs={24} sm={12} lg={8}>
@@ -63,6 +67,7 @@ export function PlatformDashboardPage() {
             title={t('platformDashboard.totalParticipants')}
             value={stats?.totalParticipants ?? 0}
             icon={<TeamOutlined />}
+            color={chart.teal}
           />
         </Col>
         <Col xs={24} sm={12} lg={8}>
@@ -70,7 +75,7 @@ export function PlatformDashboardPage() {
             title={t('platformDashboard.totalAttendance')}
             value={stats?.totalAttendanceRecords ?? 0}
             icon={<LoginOutlined />}
-            color={brand.primary}
+            color={chart.orange}
           />
         </Col>
       </Row>
